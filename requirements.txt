@@ -2,3 +2,4 @@
 flax
 transformers
 datasets
+wandb

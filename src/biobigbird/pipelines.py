@@ -45,7 +45,7 @@ def pipeline(name: str, model: str):
     assert name in PIPELINES_ALIAS
     model_id = model
 
-    model = FlaxBigBirdForMaskedLM.from_pretrained(model_id, from_pt=True, attention_type="original_full")
+    model = FlaxBigBirdForMaskedLM.from_pretrained(model_id, attention_type="original_full")
     tokenizer = AutoTokenizer.from_pretrained(model_id)
 
     pipeline_cls = PIPELINES_ALIAS[name]
@@ -53,8 +53,8 @@ def pipeline(name: str, model: str):
 
 
 if __name__ == "__main__":
-    model_id = 'microsoft/BiomedNLP-PubMedBERT-base-uncased-abstract'
+    model_id = 'vasudevgupta/microsoft-BiomedNLP-PubMedBERT-base-uncased-abstract'
     pipe = pipeline('fill-mask', model=model_id)
-    
+
     string = '[MASK] is the tyrosine kinase inhibitor.'
     print(pipe(string))
