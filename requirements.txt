@@ -3,3 +3,6 @@ flax
 transformers
 datasets
 wandb
+PyYAML
+pydantic
+tqdm
