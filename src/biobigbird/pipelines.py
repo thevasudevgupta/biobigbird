@@ -41,11 +41,11 @@ class FlaxFillMaskPipeline:
 
 
 # only bigbird specific pipeline
-def pipeline(name: str, model: str, use_auth_token=None):
+def pipeline(name: str, model: str, attention_type="original_full", use_auth_token=None):
     assert name in PIPELINES_ALIAS
     model_id = model
 
-    model = FlaxBigBirdForMaskedLM.from_pretrained(model_id, attention_type="original_full", use_auth_token=use_auth_token)
+    model = FlaxBigBirdForMaskedLM.from_pretrained(model_id, attention_type=attention_type, use_auth_token=use_auth_token)
     tokenizer = AutoTokenizer.from_pretrained(model_id)
 
     pipeline_cls = PIPELINES_ALIAS[name]
