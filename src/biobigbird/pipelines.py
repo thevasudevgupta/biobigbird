@@ -41,11 +41,14 @@ class FlaxFillMaskPipeline:
         logits = self.model(**inputs).logits
 
         mask_positions = inputs.input_ids == self.tokenizer.mask_token_id
-        num_masks = jnp.sum(mask_positions, axis=-1)
-        assert jnp.alltrue(num_masks == 1), num_masks
+        # num_masks = jnp.sum(mask_positions, axis=-1)
+        # assert jnp.alltrue(num_masks == 1), num_masks
 
         outputs = jnp.argmax(logits[mask_positions], axis=-1)
         outputs = self.tokenizer.batch_decode(outputs)
+
+        # targets = inputs["input_ids"][mask_positions]
+        # targets = self.tokenizer.batch_decode(targets)
 
         return outputs
 
@@ -84,7 +87,7 @@ Hemoglobin and hemoglobin-like molecules are also found in many invertebrates, f
 
 Hemoglobinemia is a medical condition in which there is an excess of hemoglobin in the blood plasma. This is an effect of [MASK] hemolysis, in which hemoglobin separates from red blood cells, a form of anemia.
 
-There is more than one hemoglobin gene: in humans, hemoglobin A (the main form of hemoglobin present in adults) is coded for by the genes, HBA1, HBA2, and HBB.[28] The hemoglobin subunit alpha 1 and alpha 2 are coded by the genes HBA1 and HBA2, respectively, which are both on chromosome 16 and are close to each other. The hemoglobin subunit beta is coded by HBB gene which is on chromosome 11 . The amino acid sequences of the globin proteins in hemoglobins usually differ between species. These differences grow with evolutionary distance between species. For example, the most common hemoglobin sequences in humans, bonobos and chimpanzees are completely identical, without even a single amino acid difference in either the alpha or the beta globin protein chains.[29][30][31] Whereas the human and gorilla hemoglobin differ in one amino acid in both alpha and beta chains, these differences grow larger between less closely related species.
+There is more than one hemoglobin gene: in humans, hemoglobin A (the main form of hemoglobin present in adults) is coded for by the genes, HBA1, HBA2, and HBB.[28] The hemoglobin subunit alpha 1 and alpha 2 are coded by the genes HBA1 and HBA2, respectively, which are both on chromosome 16 and are close to each other. The hemoglobin subunit beta is coded by HBB gene which is on chromosome 11 . The amino acid sequences of the globin proteins in hemoglobins usually differ between species. These differences grow with evolutionary distance between species. For example, the most common hemoglobin sequences in humans, bonobos and chimpanzees are completely identical, without even a single amino acid difference in either the alpha or the beta globin protein chains.[29][30][31] Whereas the human and gorilla hemoglobin differ in one amino acid in both [MASK] and beta chains, these differences grow larger between less closely related species.
 
 
 """
