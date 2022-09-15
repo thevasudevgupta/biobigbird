@@ -2,7 +2,6 @@ __version__ = "0.0.1"
 
 import setuptools
 
-
 with open("readme.md", "r", encoding="utf-8") as file:
     long_description = file.read()
 
