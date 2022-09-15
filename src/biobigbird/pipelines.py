@@ -1,6 +1,7 @@
 import jax
 import jax.numpy as jnp
 from transformers import FlaxAutoModelForMaskedLM, AutoTokenizer, FlaxBigBirdForMaskedLM
+from biobigbird.constants import HF_TOKEN
 
 from typing import List
 
@@ -40,13 +41,12 @@ class FlaxFillMaskPipeline:
         return outputs
 
 
-# only bigbird specific pipeline
-def pipeline(name: str, model: str, attention_type="original_full", use_auth_token=None):
+def pipeline(name: str, model: str, attention_type="original_full", use_auth_token=HF_TOKEN):
     assert name in PIPELINES_ALIAS
     model_id = model
 
     model = FlaxBigBirdForMaskedLM.from_pretrained(model_id, attention_type=attention_type, use_auth_token=use_auth_token)
-    tokenizer = AutoTokenizer.from_pretrained(model_id)
+    tokenizer = AutoTokenizer.from_pretrained(model_id, use_auth_token=use_auth_token)
 
     pipeline_cls = PIPELINES_ALIAS[name]
     return pipeline_cls(model=model, tokenizer=tokenizer)
