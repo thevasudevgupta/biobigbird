@@ -90,6 +90,7 @@ There is more than one hemoglobin gene: in humans, hemoglobin A (the main form o
 """
     string = " ".join(string.split())
     print(len(string) // 4)
+    print(string)
 
     # intravascular
     print(pipe(string, max_length=768))
