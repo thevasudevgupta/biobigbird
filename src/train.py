@@ -164,6 +164,7 @@ model = FlaxBigBirdForMaskedLM.from_pretrained(
     model_id, **model_config, use_auth_token=HF_TOKEN
 )
 tokenizer = AutoTokenizer.from_pretrained(model_id, use_auth_token=HF_TOKEN)
+print(model.config)
 
 datacollator_config = DataCollatorForMLMConfig.from_dict(configs_dict["data_collator"])
 collate_fn = DataCollatorForMLM(datacollator_config, tokenizer)

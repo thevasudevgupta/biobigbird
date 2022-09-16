@@ -116,7 +116,7 @@ class Trainer:
         for epoch in range(self.config.max_epochs):
             tr_loss, avg_tr_loss = jnp.array(0), jnp.array(0)
 
-            pbar = tqdm(enumerate(train_data), desc=f"Running epoch-{epoch}")
+            pbar = tqdm(enumerate(train_data), desc=f"Running epoch-{epoch}", total=len(train_data))
             for step, batch in pbar:
                 batch = shard(batch)
 
@@ -149,7 +149,7 @@ class Trainer:
                 )
 
             val_steps, val_loss = 0, jnp.array(0)
-            for batch in tqdm(val_data):
+            for batch in tqdm(val_data, desc="evaluating ...", total=len(val_data)):
                 batch = shard(batch)
                 outputs = validation_step(state, batch)
                 val_loss += jax_utils.unreplicate(outputs.loss)
