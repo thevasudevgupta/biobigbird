@@ -1,5 +1,6 @@
 # jax
 flax
+optax
 transformers
 datasets
 wandb
@@ -7,4 +8,4 @@ PyYAML
 pydantic
 tqdm
 python-dotenv
-torch # for dataloader dependency
+torch # dataloader dependency

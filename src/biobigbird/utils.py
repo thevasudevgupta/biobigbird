@@ -1,10 +1,11 @@
 import yaml
 
-def read_yaml(path):
-    return yaml.safe_load(path)
-
 import optax
 from flax import traverse_util
+
+def read_yaml(path):
+    return yaml.safe_load(open(path, "r"))
+
 
 def hf_save_fn(
     save_dir,
@@ -41,6 +42,6 @@ def create_tx(lr, weight_decay):
         return traverse_util.unflatten_dict(mask)
 
     tx = optax.adamw(
-        learning_rate=lr, weight_decay=weight_decay, mask=weight_decay_mask
+        learning_rate=lr, weight_decay=weight_decay#, mask=weight_decay_mask
     )
     return tx

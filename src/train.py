@@ -1,19 +1,38 @@
 
-from biobigbird.training import Trainer, TrainerConfig
+from biobigbird.training import Trainer, TrainerConfig, BaseConfig, TrainingStepOutput, ValidationStepOutput
 from biobigbird.utils import read_yaml, hf_save_fn, linear_scheduler_with_warmup, create_tx
-from biobigbird.constants import HF_TOKEN
+from biobigbird.constants import HF_TOKEN, IGNORE_INDEX
 
-import optax
-from typing import Dict, Callable
+import numpy as np
+from typing import Dict, Callable, List, Any, Tuple
 import jax.numpy as jnp
 import jax
 import flax
-from flax.training import train_state, TrainingStepOutput, ValidationStepOutput
+from flax.training import train_state
 from transformers import FlaxBigBirdForMaskedLM, AutoTokenizer
 from functools import partial
 
 import math
 from datasets import load_dataset
+
+def cross_entropy(logits, labels, ignore_index=IGNORE_INDEX):
+    """
+    Args:
+        logits: bsz, seqlen, vocab_size
+        labels: bsz, seqlen
+    """
+    loss_mask = labels != ignore_index
+
+    vocab_size = logits.shape[-1]
+    labels = (labels[..., None] == jnp.arange(vocab_size)[None]).astype("f4")
+    logits = jax.nn.log_softmax(logits, axis=-1)
+    loss = -jnp.sum(labels * logits, axis=-1)
+    print(loss.shape, loss_mask.shape)
+    print(loss)
+    print(loss_mask)
+
+    loss = jnp.where(loss_mask, loss, 0).sum()
+    return loss / jnp.sum(loss_mask)
 
 
 def training_step(
@@ -25,25 +44,16 @@ def training_step(
 
     def loss_fn(params):
         labels = batch.pop("labels")
-        label_paddings = batch.pop("label_paddings")
 
         outputs = state.apply_fn(
             **batch,
             params=params,
             dropout_rng=drp_rng,
             train=True,
-            freeze_feature_encoder=True
         )
-        seqlen = outputs.logits.shape[1]
-
-        input_lengths = jnp.sum(batch["attention_mask"], axis=1)
-        input_lengths = state.get_feat_extract_output_lengths(input_lengths)
-        logit_paddings = input_lengths[..., None] <= jnp.arange(seqlen)
 
         # taking mean is fine as long as batches are equally distributed
-        return state.loss_fn(
-            outputs.logits, logit_paddings, labels, label_paddings
-        ).mean()
+        return state.loss_fn(outputs.logits, labels)
 
     grad_fn = jax.value_and_grad(loss_fn)
     loss, grads = grad_fn(state.params)
@@ -65,29 +75,65 @@ def validation_step(
 ) -> ValidationStepOutput:
 
     labels = batch.pop("labels")
-    label_paddings = batch.pop("label_paddings")
-    batch.pop("mask_time_indices", None)
-
-    input_lengths = jnp.sum(batch["attention_mask"], axis=1)
-    input_lengths = state.get_feat_extract_output_lengths(input_lengths)
-
     outputs = state.apply_fn(**batch, params=state.params, train=False)
 
-    seqlen = outputs.logits.shape[1]
-    logit_paddings = input_lengths[..., None] <= jnp.arange(seqlen)
-
-    loss = state.loss_fn(outputs.logits, logit_paddings, labels, label_paddings).mean()
+    loss = state.loss_fn(outputs.logits, labels)
     loss = jax.lax.pmean(loss, axis_name="batch")
 
     return ValidationStepOutput(loss=loss)
 
 
-class DataCollatorForMLM:
-    def __init__(self, config):
-        self.config = config
+class DataCollatorForMLMConfig(BaseConfig):
+    max_length: int
+    mlm_probability: float
 
-    def __call__(self):
-        return
+
+class DataCollatorForMLM:
+    def __init__(self, config, tokenizer):
+        self.config = config
+        self.tokenizer = tokenizer
+
+    def __call__(self, batch: List[Dict[str, Any]]):
+        abstracts = [sample["abstract"] for sample in batch]
+        articles = [sample["article"] for sample in batch]        
+        inputs = self.tokenizer(abstracts, articles, max_length=self.config.max_length, truncation=True, padding="max_length", return_tensors="np", return_special_tokens_mask=True)
+
+        special_tokens_mask = inputs.pop("special_tokens_mask")
+        input_ids, labels = self.mask_tokens(inputs["input_ids"], special_tokens_mask)
+        
+        bingo = {**inputs, "input_ids": input_ids, "labels": labels}
+        print({k: b.shape for k, b in bingo.items()})        
+
+        return {**inputs, "input_ids": input_ids, "labels": labels}
+
+    def mask_tokens(
+        self, input_ids: np.ndarray, special_tokens_mask: np.ndarray
+    ) -> Tuple[np.ndarray, np.ndarray]:
+        """
+        Prepare masked tokens input_ids/labels for masked language modeling: 80% MASK, 10% random, 10% original.
+        """
+        labels = input_ids.copy()
+        # We sample a few tokens in each sequence for MLM training (with probability `self.mlm_probability`)
+        probability_matrix = np.full(labels.shape, self.config.mlm_probability)
+        special_tokens_mask = special_tokens_mask.astype("bool")
+
+        probability_matrix[special_tokens_mask] = 0.0
+        masked_indices = np.random.binomial(1, probability_matrix).astype("bool")
+        labels[~masked_indices] = IGNORE_INDEX  # We only compute loss on masked tokens
+
+        # 80% of the time, we replace masked input tokens with tokenizer.mask_token ([MASK])
+        indices_replaced = np.random.binomial(1, np.full(labels.shape, 0.8)).astype("bool") & masked_indices
+        input_ids[indices_replaced] = self.tokenizer.mask_token_id
+
+        # 10% of the time, we replace masked input tokens with random word
+        indices_random = np.random.binomial(1, np.full(labels.shape, 0.5)).astype("bool")
+        indices_random &= masked_indices & ~indices_replaced
+
+        random_words = np.random.randint(self.tokenizer.vocab_size, size=labels.shape, dtype="i4")
+        input_ids[indices_random] = random_words[indices_random]
+
+        # The rest of the time (10% of the time) we keep the masked input tokens unchanged
+        return input_ids, labels
 
 
 class TrainState(train_state.TrainState):
@@ -96,13 +142,16 @@ class TrainState(train_state.TrainState):
 
 
 configs_dict = read_yaml("config.yaml")
-
-collate_fn = DataCollatorForMLM(**configs_dict["data_collator"])
+print(configs_dict)
+print(jax.devices())
 
 model_config = configs_dict["model"]
 model_id = model_config.pop("model_id")
 model = FlaxBigBirdForMaskedLM.from_pretrained(model_id, **model_config, use_auth_token=HF_TOKEN)
 tokenizer = AutoTokenizer.from_pretrained(model_id, use_auth_token=HF_TOKEN)
+
+datacollator_config = DataCollatorForMLMConfig.from_dict(configs_dict["data_collator"])
+collate_fn = DataCollatorForMLM(datacollator_config, tokenizer)
 
 save_fn = partial(
     hf_save_fn,
@@ -142,7 +191,7 @@ state = TrainState.create(
     apply_fn=model.__call__,
     params=model.params,
     tx=tx,
-    loss_fn=optax.softmax_cross_entropy,
+    loss_fn=cross_entropy,
     lr_scheduler=lr_scheduler,
 )
 

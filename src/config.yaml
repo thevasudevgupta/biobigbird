@@ -3,11 +3,12 @@ model:
   attention_type: block_sparse
 
 data_collator:
-  ...
+  max_length: 512
+  mlm_probability: 0.2
 
 trainer:
   max_epochs: 2
-  batch_size_per_device: 2
+  batch_size_per_device: 1
   wandb_project_name: biobigbird
   epochs_save_dir: tmp_epochs
   logging_steps: 1

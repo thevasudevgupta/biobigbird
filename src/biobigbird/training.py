@@ -2,12 +2,10 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any, Callable, Dict, Optional, Union
 
-import datasets
 import jax
 import jax.numpy as jnp
 import pydantic
 import wandb
-import yaml
 from flax import jax_utils, struct
 from flax.serialization import from_bytes, to_bytes
 from flax.training import train_state
@@ -117,7 +115,6 @@ class Trainer:
 
         for epoch in range(self.config.max_epochs):
             tr_loss, avg_tr_loss = jnp.array(0), jnp.array(0)
-            train_data.shuffle(epoch)
 
             pbar = tqdm(enumerate(train_data), desc=f"Running epoch-{epoch}")
             for step, batch in pbar:
