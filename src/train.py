@@ -29,9 +29,6 @@ def cross_entropy(logits, labels, ignore_index=IGNORE_INDEX):
     labels = (labels[..., None] == jnp.arange(vocab_size)[None]).astype("f4")
     logits = jax.nn.log_softmax(logits, axis=-1)
     loss = -jnp.sum(labels * logits, axis=-1)
-    print(loss.shape, loss_mask.shape)
-    print(loss)
-    print(loss_mask)
 
     loss = jnp.where(loss_mask, loss, 0).sum()
     return loss / jnp.sum(loss_mask)
@@ -112,7 +109,6 @@ class DataCollatorForMLM:
         input_ids, labels = self.mask_tokens(inputs["input_ids"], special_tokens_mask)
 
         bingo = {**inputs, "input_ids": input_ids, "labels": labels}
-        print({k: b.shape for k, b in bingo.items()})
 
         return {**inputs, "input_ids": input_ids, "labels": labels}
 
