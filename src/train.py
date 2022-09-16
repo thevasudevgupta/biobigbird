@@ -193,7 +193,7 @@ print(train_data, val_data)
 
 # we are dropping the last batch for now
 batch_size = trainer_config.batch_size_per_device * jax.device_count()
-num_steps = math.ceil(len(train_data) // batch_size)
+num_steps = math.ceil(len(train_data) // batch_size) * trainer_config.max_epochs
 
 lr_scheduler = linear_scheduler_with_warmup(
     configs_dict["optax"]["lr"],
