@@ -14,7 +14,7 @@ from flax.training import train_state
 from flax.training.common_utils import shard
 from tqdm.auto import tqdm
 
-from biobigbird.iterable_data import IterableDataLoader
+from torch.utils.data import DataLoader
 
 PathType = Union[Path, str]
 OPTIMIZER_STATE_PATH = "optim_state.msgpack"
@@ -49,7 +49,7 @@ class BaseConfig(pydantic.BaseModel):
 class TrainerConfig(BaseConfig):
     max_epochs: int
     batch_size_per_device: int
-    wandb_project_name: str = "speech_jax"
+    wandb_project_name: str = "biobigbird"
     epochs_save_dir: Optional[str] = None
     logging_steps: int = 1
     max_steps_per_epoch: int = -1
@@ -74,8 +74,8 @@ class Trainer:
     def train(
         self,
         state: train_state.TrainState,
-        train_data: datasets.IterableDataset,
-        val_data: datasets.IterableDataset,
+        train_data,
+        val_data,
         wandb_configs: Optional[Dict[str, Any]] = None,
         seed: int = 0,
     ):
@@ -88,12 +88,24 @@ class Trainer:
 
         batch_size = self.config.batch_size_per_device * jax.device_count()
 
-        train_data = IterableDataLoader(
-            train_data, batch_size=batch_size, collate_fn=self.collate_fn
+        train_data = DataLoader(
+            train_data,
+            batch_size=batch_size, 
+            collate_fn=self.collate_fn,
+            shuffle=True,
+            pin_memory=True,
+            num_workers=4,
+            drop_last=True,
         )
 
-        val_data = IterableDataLoader(
-            val_data, batch_size=batch_size, collate_fn=self.collate_fn
+        val_data = DataLoader(
+            val_data,
+            batch_size=batch_size,
+            collate_fn=self.collate_fn, 
+            shuffle=False,
+            pin_memory=True,
+            num_workers=4,
+            drop_last=True,
         )
 
         state = jax_utils.replicate(state)

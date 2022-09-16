@@ -7,3 +7,4 @@ PyYAML
 pydantic
 tqdm
 python-dotenv
+torch # for dataloader dependency

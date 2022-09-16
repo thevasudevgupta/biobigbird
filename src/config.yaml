@@ -1,0 +1,20 @@
+model:
+  model_id: vasudevgupta/microsoft-BiomedNLP-PubMedBERT-base-uncased-abstract
+  attention_type: block_sparse
+
+data_collator:
+  ...
+
+trainer:
+  max_epochs: 2
+  batch_size_per_device: 2
+  wandb_project_name: biobigbird
+  epochs_save_dir: tmp_epochs
+  logging_steps: 1
+  max_steps_per_epoch: -1
+
+optax:
+  lr: 3.e-5
+  init_lr: 1.e-7
+  warmup_steps: 2000
+  weight_decay: 1.e-5
