@@ -5,14 +5,14 @@ from typing import Any, Callable, Dict, Optional, Union
 import jax
 import jax.numpy as jnp
 import pydantic
-import wandb
 from flax import jax_utils, struct
 from flax.serialization import from_bytes, to_bytes
 from flax.training import train_state
 from flax.training.common_utils import shard
+from torch.utils.data import DataLoader
 from tqdm.auto import tqdm
 
-from torch.utils.data import DataLoader
+import wandb
 
 PathType = Union[Path, str]
 OPTIMIZER_STATE_PATH = "optim_state.msgpack"
@@ -88,7 +88,7 @@ class Trainer:
 
         train_data = DataLoader(
             train_data,
-            batch_size=batch_size, 
+            batch_size=batch_size,
             collate_fn=self.collate_fn,
             shuffle=True,
             pin_memory=True,
@@ -99,7 +99,7 @@ class Trainer:
         val_data = DataLoader(
             val_data,
             batch_size=batch_size,
-            collate_fn=self.collate_fn, 
+            collate_fn=self.collate_fn,
             shuffle=False,
             pin_memory=True,
             num_workers=4,

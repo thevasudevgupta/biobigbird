@@ -1,19 +1,21 @@
-
-from biobigbird.training import Trainer, TrainerConfig, BaseConfig, TrainingStepOutput, ValidationStepOutput
-from biobigbird.utils import read_yaml, hf_save_fn, linear_scheduler_with_warmup, create_tx
-from biobigbird.constants import HF_TOKEN, IGNORE_INDEX
-
-import numpy as np
-from typing import Dict, Callable, List, Any, Tuple
-import jax.numpy as jnp
-import jax
-import flax
-from flax.training import train_state
-from transformers import FlaxBigBirdForMaskedLM, AutoTokenizer
-from functools import partial
-
 import math
+from functools import partial
+from typing import Any, Callable, Dict, List, Tuple
+
+import flax
+import jax
+import jax.numpy as jnp
+import numpy as np
 from datasets import load_dataset
+from flax.training import train_state
+from transformers import AutoTokenizer, FlaxBigBirdForMaskedLM
+
+from biobigbird.constants import HF_TOKEN, IGNORE_INDEX
+from biobigbird.training import (BaseConfig, Trainer, TrainerConfig,
+                                 TrainingStepOutput, ValidationStepOutput)
+from biobigbird.utils import (create_tx, hf_save_fn,
+                              linear_scheduler_with_warmup, read_yaml)
+
 
 def cross_entropy(logits, labels, ignore_index=IGNORE_INDEX):
     """
@@ -95,14 +97,22 @@ class DataCollatorForMLM:
 
     def __call__(self, batch: List[Dict[str, Any]]):
         abstracts = [sample["abstract"] for sample in batch]
-        articles = [sample["article"] for sample in batch]        
-        inputs = self.tokenizer(abstracts, articles, max_length=self.config.max_length, truncation=True, padding="max_length", return_tensors="np", return_special_tokens_mask=True)
+        articles = [sample["article"] for sample in batch]
+        inputs = self.tokenizer(
+            abstracts,
+            articles,
+            max_length=self.config.max_length,
+            truncation=True,
+            padding="max_length",
+            return_tensors="np",
+            return_special_tokens_mask=True,
+        )
 
         special_tokens_mask = inputs.pop("special_tokens_mask")
         input_ids, labels = self.mask_tokens(inputs["input_ids"], special_tokens_mask)
-        
+
         bingo = {**inputs, "input_ids": input_ids, "labels": labels}
-        print({k: b.shape for k, b in bingo.items()})        
+        print({k: b.shape for k, b in bingo.items()})
 
         return {**inputs, "input_ids": input_ids, "labels": labels}
 
@@ -122,14 +132,21 @@ class DataCollatorForMLM:
         labels[~masked_indices] = IGNORE_INDEX  # We only compute loss on masked tokens
 
         # 80% of the time, we replace masked input tokens with tokenizer.mask_token ([MASK])
-        indices_replaced = np.random.binomial(1, np.full(labels.shape, 0.8)).astype("bool") & masked_indices
+        indices_replaced = (
+            np.random.binomial(1, np.full(labels.shape, 0.8)).astype("bool")
+            & masked_indices
+        )
         input_ids[indices_replaced] = self.tokenizer.mask_token_id
 
         # 10% of the time, we replace masked input tokens with random word
-        indices_random = np.random.binomial(1, np.full(labels.shape, 0.5)).astype("bool")
+        indices_random = np.random.binomial(1, np.full(labels.shape, 0.5)).astype(
+            "bool"
+        )
         indices_random &= masked_indices & ~indices_replaced
 
-        random_words = np.random.randint(self.tokenizer.vocab_size, size=labels.shape, dtype="i4")
+        random_words = np.random.randint(
+            self.tokenizer.vocab_size, size=labels.shape, dtype="i4"
+        )
         input_ids[indices_random] = random_words[indices_random]
 
         # The rest of the time (10% of the time) we keep the masked input tokens unchanged
@@ -147,7 +164,9 @@ print(jax.devices())
 
 model_config = configs_dict["model"]
 model_id = model_config.pop("model_id")
-model = FlaxBigBirdForMaskedLM.from_pretrained(model_id, **model_config, use_auth_token=HF_TOKEN)
+model = FlaxBigBirdForMaskedLM.from_pretrained(
+    model_id, **model_config, use_auth_token=HF_TOKEN
+)
 tokenizer = AutoTokenizer.from_pretrained(model_id, use_auth_token=HF_TOKEN)
 
 datacollator_config = DataCollatorForMLMConfig.from_dict(configs_dict["data_collator"])
