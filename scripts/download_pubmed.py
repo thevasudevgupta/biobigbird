@@ -150,5 +150,9 @@ if __name__ == "__main__":
     download_dir.mkdir(exist_ok=True, parents=True)
     output_dir.mkdir(exist_ok=True, parents=True)
     for url in tqdm(urls):
-        filepath = download_url(url, download_dir / Path(url).name)
-        unzip_file(filepath, output_dir)
+        try:
+            filepath = download_url(url, download_dir / Path(url).name)
+            unzip_file(filepath, output_dir)
+        except Exception as e:
+            print("unable tp", url)
+            print(e)
