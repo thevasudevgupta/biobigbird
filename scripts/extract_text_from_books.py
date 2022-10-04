@@ -1,4 +1,4 @@
-# python3 src/extract_text_from_books.py
+# python3 scripts/extract_text_from_books.py
 
 from pathlib import Path
 from typing import List

@@ -1,3 +1,5 @@
+# python3 scripts/prepare_books.py
+
 from datasets import load_dataset
 
 filename = "books.jsonl"

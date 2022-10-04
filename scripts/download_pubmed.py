@@ -1,4 +1,4 @@
-# python3 src/download_pubmed.py
+# python3 scripts/download_pubmed.py
 
 # https://ftp.ncbi.nlm.nih.gov/pub/pmc/oa_bulk/oa_comm/txt/
 oa_comm_urls = [
