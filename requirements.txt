@@ -12,3 +12,8 @@ torch # dataloader dependency
 
 # data preprocessing dependencies
 PyPDF2
+
+# dev dependencies
+black
+isort
+flake8

@@ -116,7 +116,11 @@ class Trainer:
         for epoch in range(self.config.max_epochs):
             tr_loss, avg_tr_loss = jnp.array(0), jnp.array(0)
 
-            pbar = tqdm(enumerate(train_data), desc=f"Running epoch-{epoch}", total=len(train_data))
+            pbar = tqdm(
+                enumerate(train_data),
+                desc=f"Running epoch-{epoch}",
+                total=len(train_data),
+            )
             for step, batch in pbar:
                 batch = shard(batch)
 

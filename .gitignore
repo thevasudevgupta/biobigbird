@@ -5,6 +5,7 @@ __pycache__/
 
 *.jsonl
 books/
+.vscode/
 
 # C extensions
 *.so
