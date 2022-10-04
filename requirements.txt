@@ -9,3 +9,6 @@ pydantic
 tqdm
 python-dotenv
 torch # dataloader dependency
+
+# data preprocessing dependencies
+PyPDF2
