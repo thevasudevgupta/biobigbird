@@ -9,9 +9,10 @@ from tqdm.auto import tqdm
 target_filename = "pubmed.jsonl"
 data_dir = "downloads/pubmed_extracted/"
 
+print("collecting data files from", data_dir, "...")
 data_files = [str(f) for f in Path(data_dir).glob("**/*") if f.is_file()]
 print(f"total number of data files: {len(data_files)}")
-data_files = data_files[:2]
+# data_files = data_files[:2]
 
 # we are unable to load some of the files with HF datasets due to some utf-8 error
 # hence we are first reading the files and putting all the content in single file
