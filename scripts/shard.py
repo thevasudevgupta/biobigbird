@@ -10,7 +10,7 @@ from tqdm.auto import tqdm
 
 def shard(target_dir: str, filepath: str, num_shards: int = 10):
     target_dir = Path(target_dir)
-    target_dir.mkdir(exist_ok=True)
+    target_dir.mkdir(exist_ok=False)
 
     extension = Path(filepath).suffix
     assert extension in [".json", ".jsonl"]
