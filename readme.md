@@ -4,10 +4,10 @@ BigBird for bio-medical domain
 
 | Description | Link |
 |-------------|------|
-| Microsoft's PubMedBERT checkpoint is made compatible with BigBird | [🤗](https://huggingface.co/ddp-iitm/microsoft-BiomedNLP-PubMedBERT-base-uncased-abstract) |
-| Continual learning converted PubMedBERT in bigbird-style (not trained until convergence) | [🤗](https://huggingface.co/ddp-iitm/biobigbird_pubmed_scientific_papers) |
-| Downloaded PubMed articles from [official webpage](https://ftp.ncbi.nlm.nih.gov/pub/pmc/oa_bulk/) | [🤗](https://huggingface.co/datasets/ddp-iitm/pubmed-articles) |
-| Extracted raw text from bio-books | [🤗](https://huggingface.co/datasets/ddp-iitm/biobooks) |
+| Microsoft's PubMedBERT checkpoint is made compatible with BigBird | [`HuggingFace`](https://huggingface.co/ddp-iitm/microsoft-BiomedNLP-PubMedBERT-base-uncased-abstract) |
+| Continual learning converted PubMedBERT in bigbird-style (not trained until convergence) | [`HuggingFace`](https://huggingface.co/ddp-iitm/biobigbird_pubmed_scientific_papers) |
+| Downloaded PubMed articles from [official webpage](https://ftp.ncbi.nlm.nih.gov/pub/pmc/oa_bulk/) | [`HuggingFace`](https://huggingface.co/datasets/ddp-iitm/pubmed-articles) |
+| Extracted raw text from bio-books | [`HuggingFace`](https://huggingface.co/datasets/ddp-iitm/biobooks) |
 
 ## Installation
 
