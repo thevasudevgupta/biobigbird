@@ -1,10 +1,12 @@
-import fire
-from pathlib import Path
-import jsonlines
 import json
+from pathlib import Path
+
+import fire
+import jsonlines
 from tqdm.auto import tqdm
 
 # python3 scripts/shard.py dummy /outputs/books.jsonl
+
 
 def shard(target_dir: str, filepath: str, num_shards: int = 10):
     target_dir = Path(target_dir)
@@ -26,7 +28,7 @@ def shard(target_dir: str, filepath: str, num_shards: int = 10):
     last_shard_writer = None
     shard_no = 0
     with open(filepath) as f:
-        pbar = tqdm(enumerate(f), desc=shard_name(shard_no), total=num_lines)   
+        pbar = tqdm(enumerate(f), desc=shard_name(shard_no), total=num_lines)
         for i, line in pbar:
             line = json.loads(line)
 
@@ -42,7 +44,6 @@ def shard(target_dir: str, filepath: str, num_shards: int = 10):
                 last_shard_writer = jsonlines.open(shard_name(shard_no - 1), "a")
             elif shard_no == len(files):
                 last_shard_writer.write(line)
-
 
     if last_shard_writer is not None:
         last_shard_writer.close()
