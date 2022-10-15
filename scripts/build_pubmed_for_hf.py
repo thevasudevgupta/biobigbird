@@ -8,6 +8,7 @@ from tqdm.auto import tqdm
 
 target_filename = "pubmed.jsonl"
 data_dir = "downloads/pubmed_extracted/"
+push_to_hub = True
 
 print("collecting data files from", data_dir, "...")
 data_files = [str(f) for f in Path(data_dir).glob("**/*") if f.is_file()]
@@ -24,3 +25,6 @@ with jsonlines.open(target_filename, "a") as writer:
 # let's just test if we are able to load data using huggingface datasets
 data = load_dataset("json", data_files=target_filename, split="train")
 print(data)
+
+if push_to_hub:
+    data.push_to_hub("ddp-iitm/pubmed_raw_text", private=True)

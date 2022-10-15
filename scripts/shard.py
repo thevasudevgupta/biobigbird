@@ -5,7 +5,9 @@ import fire
 import jsonlines
 from tqdm.auto import tqdm
 
-# python3 scripts/shard.py dummy /outputs/books.jsonl
+# use this script to shard big jsonl files into multiple jsonl files
+## shard single jsonl file into multiple small files (takes nearly 1 hr)
+# python3 shard.py pubmed-articles pubmed.jsonl --num_shards=20
 
 
 def shard(target_dir: str, filepath: str, num_shards: int = 10):

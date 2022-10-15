@@ -5,11 +5,12 @@ from typing import List
 
 import jsonlines
 import PyPDF2
-from tqdm.auto import tqdm
 from datasets import load_dataset, load_from_disk
+from tqdm.auto import tqdm
 
 target_filename = "books.jsonl"
 books_dir = Path("books")
+push_to_hub = False
 print("total no of books:", len(list(books_dir.iterdir())))
 
 
@@ -39,4 +40,5 @@ with jsonlines.open(target_filename, "a") as writer:
 data = load_dataset("json", data_files=target_filename, split="train")
 print(data)
 
-data.push_to_hub("ddp-iitm/biobooks_raw_text", private=True)
+if push_to_hub:
+    data.push_to_hub("ddp-iitm/biobooks_raw_text", private=True)

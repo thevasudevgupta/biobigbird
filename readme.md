@@ -25,30 +25,20 @@ pip install "jax[tpu]>=0.2.16" -f https://storage.googleapis.com/jax-releases/li
 # following takes nearly 2 hrs and would require around 200 GB disk space
 python3 scripts/download_pubmed.py
 
-# following takes nearly 6 hrs
+# following will load pubmed in huggingface format and will push data to hub
 python3 scripts/build_pubmed_for_hf.py
-
-# clone HuggingFace repo
-git clone https://huggingface.co/datasets/ddp-iitm/pubmed-articles
-
-# shard single jsonl file into multiple small files (takes nearly 1 hr)
-python3 shard.py pubmed-articles pubmed.jsonl --num_shards=20
-
-# push dataset to huggingface hub
-cd pubmed-articles
-git lfs install && git lfs track "*.jsonl"
-git add . && git commit -m "add pubmed shards" && git push
+# it takes nearly 6 hrs
 ```
 
 ### Books
 
 ```bash
-export HF_TOKEN='something'
+export HF_TOKEN='<something>'
 
 # we have stored biobooks in huggingface hub
 wget https://vasudevgupta:{$HF_TOKEN}@huggingface.co/datasets/ddp-iitm/biobooks-pdf/resolve/main/books.zip
 unzip books.zip
 
-# extract text from books PDF
+# extract text from books PDF (takes nearly 1 hr)
 python3 scripts/extract_text_from_books.py
 ```
