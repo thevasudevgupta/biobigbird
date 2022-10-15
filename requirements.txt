@@ -13,6 +13,7 @@ fire
 
 # data preprocessing dependencies
 PyPDF2
+jsonlines
 
 # dev dependencies
 black

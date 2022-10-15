@@ -43,6 +43,12 @@ git add . && git commit -m "add pubmed shards" && git push
 ### Books
 
 ```bash
+export HF_TOKEN='something'
+
+# we have stored biobooks in huggingface hub
+wget https://vasudevgupta:{$HF_TOKEN}@huggingface.co/datasets/ddp-iitm/biobooks-pdf/resolve/main/books.zip
+unzip books.zip
+
 # extract text from books PDF
 python3 scripts/extract_text_from_books.py
 ```

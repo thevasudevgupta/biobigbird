@@ -6,6 +6,7 @@ from typing import List
 import jsonlines
 import PyPDF2
 from tqdm.auto import tqdm
+from datasets import load_dataset, load_from_disk
 
 target_filename = "books.jsonl"
 books_dir = Path("books")
@@ -35,8 +36,7 @@ with jsonlines.open(target_filename, "a") as writer:
             print("skipping:", filename)
             print(e)
 
-# just checking if we are able to load this data properly
-from datasets import load_dataset
-
 data = load_dataset("json", data_files=target_filename, split="train")
 print(data)
+
+data.push_to_hub("ddp-iitm/biobooks_raw_text", private=True)

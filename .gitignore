@@ -6,6 +6,10 @@ __pycache__/
 *.jsonl
 books/
 .vscode/
+__MACOSX/
+*.jsonl
+*.parquet
+*.zip
 
 # C extensions
 *.so
