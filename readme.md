@@ -22,7 +22,7 @@ pip install "jax[tpu]>=0.2.16" -f https://storage.googleapis.com/jax-releases/li
 ### PubMed Data
 
 ```bash
-# following takes nearly 2 hrs and would require around 200 GB disk space
+# following takes nearly 2.5 hrs and would require around 200 GB disk space
 python3 scripts/download_pubmed.py
 
 # following will load pubmed in huggingface format and will push data to hub

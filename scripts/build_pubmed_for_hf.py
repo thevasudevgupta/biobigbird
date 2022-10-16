@@ -8,7 +8,7 @@ from tqdm.auto import tqdm
 
 target_filename = "pubmed.jsonl"
 data_dir = "downloads/pubmed_extracted/"
-push_to_hub = True
+push_to_hub = False
 
 print("collecting data files from", data_dir, "...")
 data_files = [str(f) for f in Path(data_dir).glob("**/*") if f.is_file()]
