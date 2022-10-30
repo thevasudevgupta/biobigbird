@@ -13,13 +13,20 @@
 # checkout how many sequences have length > 4096
 import re
 
-# from tqdm.auto import tqdm
+from tqdm.auto import tqdm
 from datasets import load_dataset
 
 data = load_dataset(
     "parquet", data_files="train-00000-of-00389-a3285e04b5e3defa.parquet", split="train"
 )
 print(data)
+
+
+def count_tokens(data, column_name="article"):
+    num_tokens = 0
+    for sample in tqdm(data, desc="counting # tokens"):
+        num_tokens += len(sample[column_name].split())
+    return num_tokens
 
 
 def safe_divide(a, b):
@@ -94,18 +101,14 @@ def filter_samples_with_useful_content(text):
 
     return True
 
-
+print("before preprocessing:", count_tokens(data, column_name="article"))
 data = data.filter(lambda x: filter_samples_with_useful_content(x["article"]))
 data = data.map(
     lambda x: {"preprocessed": preprocess(x["article"])}, load_from_cache_file=False
 )
+print("after preprocessing:", count_tokens(data, column_name="preprocessed"))
+
 print(data)
-
-# # books_data = load_dataset("ddp-iitm/biobooks_raw_text", split="train", use_auth_token=True, cache_dir="data/biobooks_raw_text")
-# # print(books_data)
-
-# data = load_dataset("ddp-iitm/pubmed_raw_text", split="train", use_auth_token=True, cache_dir="data/pubmed_raw_text")
-# data.save_to_disk("data/pubmed_raw_text")
 
 # num_proc = 8
 # load_from_cache_file = False
@@ -113,17 +116,3 @@ print(data)
 
 # data = load_dataset("ddp-iitm/pubmed_raw_text", split="train", streaming=streaming, use_auth_token=True, cache_dir="data/pubmed_raw_text")
 # # data = data.select(range(10))
-# # data = data.map(lambda x: {"num_tokens": })
-
-# num_tokens = 0
-# for sample in tqdm(data):
-#     # print(sample)
-#     num_tokens += len(sample["article"].split())
-
-# print()
-# print("num_tokens:", num_tokens)
-# print()
-# print(data)
-# print(data["num_tokens"])
-
-# print(data[0])
