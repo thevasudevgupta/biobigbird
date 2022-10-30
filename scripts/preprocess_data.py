@@ -13,8 +13,8 @@
 # checkout how many sequences have length > 4096
 import re
 
-from tqdm.auto import tqdm
 from datasets import load_dataset
+from tqdm.auto import tqdm
 
 data = load_dataset(
     "parquet", data_files="train-00000-of-00389-a3285e04b5e3defa.parquet", split="train"
@@ -101,12 +101,30 @@ def filter_samples_with_useful_content(text):
 
     return True
 
+
 print("before preprocessing:", count_tokens(data, column_name="article"))
+print(len(data))
 data = data.filter(lambda x: filter_samples_with_useful_content(x["article"]))
+print(len(data))
 data = data.map(
     lambda x: {"preprocessed": preprocess(x["article"])}, load_from_cache_file=False
 )
 print("after preprocessing:", count_tokens(data, column_name="preprocessed"))
+
+
+def filter_duplicates(sample, index, last_index, column_name):
+    if index == last_index:
+        return True
+    return data[index + 1][column_name] != sample[column_name]
+
+
+column_name = "preprocessed"
+last_index = len(data) - 1
+data = data.sort(column_name)
+data = data.filter(
+    lambda x, index: filter_duplicates(x, index, last_index, column_name),
+    with_indices=True,
+)
 
 print(data)
 
