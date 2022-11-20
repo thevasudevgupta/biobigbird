@@ -13,12 +13,13 @@
 # checkout how many sequences have length > 4096
 import re
 
-from datasets import load_dataset
+from datasets import load_dataset, load_from_disk
 from tqdm.auto import tqdm
 
-data = load_dataset(
-    "parquet", data_files="train-00000-of-00389-a3285e04b5e3defa.parquet", split="train"
-)
+# data = load_dataset(
+#     "parquet", data_files="train-00000-of-00389-a3285e04b5e3defa.parquet", split="train"
+# )
+data = load_from_disk("data/pubmed_raw_text")
 print(data)
 
 
