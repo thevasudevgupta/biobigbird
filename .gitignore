@@ -8,7 +8,6 @@ data/
 tmp/
 
 *.jsonl
-books/
 .vscode/
 __MACOSX/
 *.jsonl
