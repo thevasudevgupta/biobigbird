@@ -6,9 +6,9 @@ import flax
 import jax
 import jax.numpy as jnp
 import numpy as np
-from datasets import load_dataset
+from datasets import load_dataset, load_from_disk
 from flax.training import train_state
-from transformers import AutoTokenizer, FlaxBigBirdForMaskedLM
+from transformers import AutoTokenizer, BigBirdConfig, FlaxBigBirdForMaskedLM
 
 from biobigbird.constants import HF_TOKEN, IGNORE_INDEX
 from biobigbird.training import (BaseConfig, Trainer, TrainerConfig,
@@ -86,6 +86,8 @@ class DataCollatorForMLMConfig(BaseConfig):
     max_length: int
     mlm_probability: float
 
+    column_name: str = "article"
+
 
 class DataCollatorForMLM:
     def __init__(self, config, tokenizer):
@@ -93,10 +95,10 @@ class DataCollatorForMLM:
         self.tokenizer = tokenizer
 
     def __call__(self, batch: List[Dict[str, Any]]):
-        abstracts = [sample["abstract"] for sample in batch]
-        articles = [sample["article"] for sample in batch]
+        # abstracts = [sample["abstract"] for sample in batch]
+        articles = [sample[self.config.column_name] for sample in batch]
         inputs = self.tokenizer(
-            abstracts,
+            # abstracts,
             articles,
             max_length=self.config.max_length,
             truncation=True,
@@ -107,8 +109,6 @@ class DataCollatorForMLM:
 
         special_tokens_mask = inputs.pop("special_tokens_mask")
         input_ids, labels = self.mask_tokens(inputs["input_ids"], special_tokens_mask)
-
-        bingo = {**inputs, "input_ids": input_ids, "labels": labels}
 
         return {**inputs, "input_ids": input_ids, "labels": labels}
 
@@ -160,11 +160,20 @@ print(jax.devices())
 
 model_config = configs_dict["model"]
 model_id = model_config.pop("model_id")
-model = FlaxBigBirdForMaskedLM.from_pretrained(
-    model_id, **model_config, use_auth_token=HF_TOKEN
-)
-tokenizer = AutoTokenizer.from_pretrained(model_id, use_auth_token=HF_TOKEN)
+tokenizer_id = model_config["tokenizer_id"]
+if model_id is None:
+    assert tokenizer_id is not None
+    config = BigBirdConfig(**model_config)
+    model = FlaxBigBirdForMaskedLM(config)
+    tokenizer = AutoTokenizer.from_pretrained(tokenizer_id, use_auth_token=HF_TOKEN)
+else:
+    model = FlaxBigBirdForMaskedLM.from_pretrained(
+        model_id, **model_config, use_auth_token=HF_TOKEN
+    )
+    tokenizer = AutoTokenizer.from_pretrained(model_id)
+
 print(model.config)
+print(tokenizer)
 
 datacollator_config = DataCollatorForMLMConfig.from_dict(configs_dict["data_collator"])
 collate_fn = DataCollatorForMLM(datacollator_config, tokenizer)
@@ -187,9 +196,22 @@ trainer = Trainer(
     model_save_fn=save_fn,
 )
 
-dataset = load_dataset("scientific_papers", "pubmed")
+data_config = configs_dict["data"]
+streaming = datacollator_config["streaming"]
+should_load_from_disk = data_config["should_load_from_disk"]
+dataset_id = data_config["dataset_id"]
+
+if streaming:
+    assert not should_load_from_disk
+    dataset = load_dataset(dataset_id, streaming=True, use_auth_token=HF_TOKEN)
+elif should_load_from_disk:
+    dataset = load_from_disk(dataset_id)
+else:
+    dataset = load_dataset(dataset_id, use_auth_token=HF_TOKEN)
+
 train_data, val_data = dataset["train"], dataset["validation"]
-print(train_data, val_data)
+print("train_data:", train_data)
+print("val_data:", val_data)
 
 # we are dropping the last batch for now
 batch_size = trainer_config.batch_size_per_device * jax.device_count()
