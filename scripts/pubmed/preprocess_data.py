@@ -18,11 +18,25 @@ import re
 from datasets import load_dataset, load_from_disk
 from tqdm.auto import tqdm
 
-data = load_dataset(
-    "parquet", data_files="train-00041-of-00389-ad86292e94260987.parquet", split="train"
+push_to_hub = False
+num_proc = 4
+numbers_pattern = re.compile("\d+")
+
+
+article_end = set(
+    [
+        "disclosures",
+        "disclosure",
+        "acknowledgements",
+        "acknowledgment",
+        "reference",
+        "references",
+        "refs",
+        "funding",
+        "abbreviations",
+        "additional file",
+    ]
 )
-# data = load_from_disk("data/pubmed_raw_text")
-print(data)
 
 
 def count_tokens(data, column_name="article"):
@@ -43,23 +57,6 @@ def startswith_or_endswith(text, patterns):
         if text.startswith(pattern) or text.endswith(pattern):
             return True
     return False
-
-
-numbers_pattern = re.compile("\d+")
-article_end = set(
-    [
-        "disclosures",
-        "disclosure",
-        "acknowledgements",
-        "acknowledgment",
-        "reference",
-        "references",
-        "refs",
-        "funding",
-        "abbreviations",
-        "additional file",
-    ]
-)
 
 
 def preprocess(text):
@@ -114,8 +111,6 @@ def preprocess(text):
     text = "\n".join(new_paragraphs)
 
     text = text.replace("==== front", "").strip()
-    # print(text)
-    # exit()
     return text
 
 
@@ -134,13 +129,22 @@ def filter_samples_with_useful_content(text):
     return True
 
 
-print("before preprocessing:", count_tokens(data, column_name="article"))
+# data = load_dataset(
+#     "parquet", data_files="train-00041-of-00389-ad86292e94260987.parquet", split="train", num_proc=num_proc
+# )
+data = load_from_disk("data/pubmed_raw_text")
+print(data)
+print("# tokens (before preprocessing) :", count_tokens(data, column_name="article"))
+
 data = data.map(
-    lambda x: {"preprocessed": preprocess(x["article"])}, load_from_cache_file=False
+    lambda x: {"preprocessed": preprocess(x["article"])},
+    load_from_cache_file=False,
+    num_proc=num_proc,
 )
 data = data.filter(
     lambda x: filter_samples_with_useful_content(x["article"]),
     load_from_cache_file=False,
+    num_proc=num_proc,
 )
 
 
@@ -159,14 +163,13 @@ data = data.filter(
     load_from_cache_file=False,
 )
 
-print("after preprocessing:", count_tokens(data, column_name="preprocessed"))
+
+print(
+    "# tokens (after preprocessing) :", count_tokens(data, column_name="preprocessed")
+)
 print(data)
 
+
 data.save_to_disk("pubmed_raw_text_v2")
-
-# num_proc = 8
-# load_from_cache_file = False
-# streaming = True
-
-# data = load_dataset("ddp-iitm/pubmed_raw_text", split="train", streaming=streaming, use_auth_token=True, cache_dir="data/pubmed_raw_text")
-# # data = data.select(range(10))
+if push_to_hub:
+    data.push_to_hub("ddp-iitm/pubmed_raw_text_v2", private=True)
