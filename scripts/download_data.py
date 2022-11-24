@@ -1,10 +1,18 @@
 from datasets import load_dataset
-from tqdm.auto import tqdm
 
+download_books = True
 download_pubmed = False
 
-# books_data = load_dataset("ddp-iitm/biobooks_raw_text", split="train", use_auth_token=True, cache_dir="data/biobooks_raw_text")
-# print(books_data)
+if download_books:
+    books_data = load_dataset(
+        "ddp-iitm/biobooks_raw_text",
+        split="train",
+        use_auth_token=True,
+        cache_dir="data/biobooks_raw_text",
+    )
+    print(books_data)
+    books_data.save_to_disk("data/biobooks_raw_text")
+
 
 if download_pubmed:
     pubmed_data = load_dataset(
@@ -13,6 +21,5 @@ if download_pubmed:
         use_auth_token=True,
         cache_dir="tmp/pubmed_raw_text",
     )
+    print(pubmed_data)
     pubmed_data.save_to_disk("data/pubmed_raw_text")
-
-# rm -rf tmp

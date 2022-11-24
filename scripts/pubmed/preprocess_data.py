@@ -5,6 +5,8 @@
 # remove samples whoch donot have introduction
 # lower case all the text
 
+# python3 scripts/pubmed/preprocess_data.py
+
 # steps:
 # remove exact duplicates
 # remove all the text after Conclusion/Conclusions
@@ -16,10 +18,10 @@ import re
 from datasets import load_dataset, load_from_disk
 from tqdm.auto import tqdm
 
-# data = load_dataset(
-#     "parquet", data_files="train-00000-of-00389-a3285e04b5e3defa.parquet", split="train"
-# )
-data = load_from_disk("data/pubmed_raw_text")
+data = load_dataset(
+    "parquet", data_files="train-00041-of-00389-ad86292e94260987.parquet", split="train"
+)
+# data = load_from_disk("data/pubmed_raw_text")
 print(data)
 
 
@@ -36,8 +38,28 @@ def safe_divide(a, b):
     return a / b
 
 
-numbers_pattern = re.compile("[0-9]")
-other_pattern = re.compile("[^0-9]")
+def startswith_or_endswith(text, patterns):
+    for pattern in patterns:
+        if text.startswith(pattern) or text.endswith(pattern):
+            return True
+    return False
+
+
+numbers_pattern = re.compile("\d+")
+article_end = set(
+    [
+        "disclosures",
+        "disclosure",
+        "acknowledgements",
+        "acknowledgment",
+        "reference",
+        "references",
+        "refs",
+        "funding",
+        "abbreviations",
+        "additional file",
+    ]
+)
 
 
 def preprocess(text):
@@ -48,14 +70,21 @@ def preprocess(text):
     for i, paragraph in enumerate(paragraphs):
         paragraph = paragraph.strip()
         # we look for the 1st occurence of `introduction`
-        if paragraph == "introduction":
+        if startswith_or_endswith(paragraph, ["introduction"]):
             if start_idx is None:
                 start_idx = i
-        # we look for the last occurence of `conclusion`
-        elif paragraph == "conclusion":
-            # +1 because we want to include the conclusion paragraph
-            # +1 because of list indexing
-            end_idx = i + 1 + 1
+                if paragraph.endswith("introduction"):
+                    start_idx += 1
+        # we look for the first occurence of `conclusion`
+        elif start_idx is not None:
+            if startswith_or_endswith(paragraph, ["conclusions", "conclusion"]):
+                # +1 because we want to include the conclusion paragraph
+                # +1 because of list indexing
+                end_idx = i + 1 + 1
+                break
+            elif startswith_or_endswith(paragraph, article_end):
+                end_idx = i
+                break
 
     if start_idx is None:
         start_idx = 0
@@ -77,12 +106,14 @@ def preprocess(text):
         for paragraph in new_paragraphs
         if safe_divide(
             len(numbers_pattern.findall(paragraph)),
-            len(other_pattern.findall(paragraph)),
+            len(paragraph.split()),
         )
-        < 0.06
+        < 0.3
     ]
 
     text = "\n".join(new_paragraphs)
+
+    text = text.replace("==== front", "").strip()
     # print(text)
     # exit()
     return text
@@ -104,13 +135,13 @@ def filter_samples_with_useful_content(text):
 
 
 print("before preprocessing:", count_tokens(data, column_name="article"))
-print(len(data))
-data = data.filter(lambda x: filter_samples_with_useful_content(x["article"]))
-print(len(data))
 data = data.map(
     lambda x: {"preprocessed": preprocess(x["article"])}, load_from_cache_file=False
 )
-print("after preprocessing:", count_tokens(data, column_name="preprocessed"))
+data = data.filter(
+    lambda x: filter_samples_with_useful_content(x["article"]),
+    load_from_cache_file=False,
+)
 
 
 def filter_duplicates(sample, index, last_index, column_name):
@@ -125,9 +156,13 @@ data = data.sort(column_name)
 data = data.filter(
     lambda x, index: filter_duplicates(x, index, last_index, column_name),
     with_indices=True,
+    load_from_cache_file=False,
 )
 
+print("after preprocessing:", count_tokens(data, column_name="preprocessed"))
 print(data)
+
+data.save_to_disk("pubmed_raw_text_v2")
 
 # num_proc = 8
 # load_from_cache_file = False
