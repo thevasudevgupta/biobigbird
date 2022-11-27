@@ -13,11 +13,11 @@ tokenizer = AutoTokenizer.from_pretrained("bert-base-uncased")
 
 # ds = load_from_disk("pubmed_raw_text_v3")
 ds = load_dataset(
-    "ddp-iitm/pubmed_raw_text_v3", split="train", streaming=True, use_auth_token=True
+    "ddp-iitm/pubmed_raw_text_v3", split="train", use_auth_token=True, streaming=True
 )
-ds = ds.shuffle(seed=42).select(range(num_samples))
+ds = ds.shuffle(seed=42).take(num_samples)
 
-iterator = (ds[i : i + batch_size] for i in range(0, len(ds), batch_size))
+iterator = (sample['text'] for sample in ds)
 
 tokenizer = tokenizer.train_new_from_iterator(iterator, vocab_size=vocab_size)
 print(tokenizer)
