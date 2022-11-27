@@ -51,6 +51,10 @@ class TrainerConfig(BaseConfig):
     logging_steps: int = 1
     max_steps_per_epoch: int = -1
 
+    dataloader_num_workers: int = 2
+    dataloader_pin_memory: bool = True
+    dataloader_prefetch_factor: int = 2
+
     @classmethod
     def from_dict(cls, dictionary: Dict[str, Any]) -> "TrainerConfig":
         return cls(**dictionary)
@@ -85,14 +89,19 @@ class Trainer:
 
         batch_size = self.config.batch_size_per_device * jax.device_count()
 
+        pin_memory = self.config.dataloader_pin_memory
+        num_workers = self.config.dataloader_num_workers
+        prefetch_factor = self.config.dataloader_prefetch_factor
+
         train_data = DataLoader(
             train_data,
             batch_size=batch_size,
             collate_fn=self.collate_fn,
             shuffle=True,
-            pin_memory=True,
-            num_workers=4,
+            pin_memory=pin_memory,
+            num_workers=num_workers,
             drop_last=True,
+            prefetch_factor=prefetch_factor,
         )
 
         val_data = DataLoader(
@@ -100,9 +109,10 @@ class Trainer:
             batch_size=batch_size,
             collate_fn=self.collate_fn,
             shuffle=False,
-            pin_memory=True,
-            num_workers=4,
+            pin_memory=pin_memory,
+            num_workers=num_workers,
             drop_last=True,
+            prefetch_factor=prefetch_factor,
         )
 
         state = jax_utils.replicate(state)

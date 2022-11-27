@@ -86,7 +86,7 @@ class DataCollatorForMLMConfig(BaseConfig):
     max_length: int
     mlm_probability: float
 
-    column_name: str = "article"
+    column_name: str = "text"
 
 
 class DataCollatorForMLM:
@@ -96,7 +96,9 @@ class DataCollatorForMLM:
 
     def __call__(self, batch: List[Dict[str, Any]]):
         # abstracts = [sample["abstract"] for sample in batch]
-        articles = [sample[self.config.column_name] for sample in batch]
+        articles = [
+            " ".join(sample[self.config.column_name].split()) for sample in batch
+        ]
         inputs = self.tokenizer(
             # abstracts,
             articles,

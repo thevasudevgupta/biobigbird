@@ -1,13 +1,12 @@
 data:
-  streaming: false
-  should_load_from_disk: true
-  # dataset_id: ddp-iitm/pubmed_raw_text_v2
-  dataset_id: data/pubmed_raw_text
+  streaming: true
+  should_load_from_disk: false
+  dataset_id: ddp-iitm/pubmed_raw_text_v3
 
 
 model:
   model_id: null
-  tokenizer_id: ddp-iitm/pubmed_raw_text_v2_tokenizer
+  tokenizer_id: ddp-iitm/pubmed_raw_text_v3_tokenizer
   attention_type: block_sparse
   block_size: 128
   num_random_blocks: 3
@@ -25,6 +24,10 @@ trainer:
   epochs_save_dir: model_1st
   logging_steps: 128
   max_steps_per_epoch: -1
+
+  dataloader_num_workers: 2
+  dataloader_pin_memory: false
+  dataloader_prefetch_factor: 2
 
 optax:
   lr: 5.e-5
