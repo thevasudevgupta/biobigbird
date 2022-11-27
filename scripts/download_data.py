@@ -1,7 +1,7 @@
 from datasets import load_dataset
 
-download_books = True
-download_pubmed = False
+download_books = False
+download_pubmed = True
 
 if download_books:
     books_data = load_dataset(

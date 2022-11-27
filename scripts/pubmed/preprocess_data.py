@@ -18,8 +18,8 @@ import re
 from datasets import load_dataset, load_from_disk
 from tqdm.auto import tqdm
 
-push_to_hub = False
-num_proc = 4
+push_to_hub = True
+num_proc = 8
 numbers_pattern = re.compile("\d+")
 
 
@@ -129,31 +129,51 @@ def filter_samples_with_useful_content(text):
     return True
 
 
-# data = load_dataset(
-#     "parquet", data_files="train-00041-of-00389-ad86292e94260987.parquet", split="train", num_proc=num_proc
-# )
-data = load_from_disk("data/pubmed_raw_text")
-print(data)
-print("# tokens (before preprocessing) :", count_tokens(data, column_name="article"))
-
-data = data.map(
-    lambda x: {"preprocessed": preprocess(x["article"])},
-    load_from_cache_file=False,
-    num_proc=num_proc,
-)
-data = data.filter(
-    lambda x: filter_samples_with_useful_content(x["article"]),
-    load_from_cache_file=False,
-    num_proc=num_proc,
-)
-
-
 def filter_duplicates(sample, index, last_index, column_name):
     if index == last_index:
         return True
     return data[index + 1][column_name] != sample[column_name]
 
 
+# data = load_dataset(
+#     "parquet", data_files="train-00041-of-00389-ad86292e94260987.parquet", split="train", num_proc=num_proc
+# )
+# data = load_from_disk("data/pubmed_raw_text")
+# print(data)
+# # print("# tokens (before preprocessing) :", count_tokens(data, column_name="article"))
+
+# print("let's go again")
+# data = data.map(
+#     lambda x: {"preprocessed": preprocess(x["article"])},
+#     load_from_cache_file=False,
+#     num_proc=num_proc,
+# )
+
+# print("saving")
+# data.save_to_disk("pubmed_raw_text_v2")
+# print("saved")
+# exit()
+
+# print("loading ... ")
+# data = load_from_disk("pubmed_raw_text_v2")
+# print("loading done")
+
+# print("starting step-1")
+# data = data.filter(
+#     lambda x: filter_samples_with_useful_content(x["preprocessed"]),
+#     load_from_cache_file=False,
+#     num_proc=num_proc,
+# )
+# print("step-1 finished")
+# print("saving")
+# data.save_to_disk("pubmed_raw_text_v3")
+# print("saved")
+# exit()
+
+data = load_from_disk("pubmed_raw_text_v3")
+print(data)
+
+print("starting step-2")
 column_name = "preprocessed"
 last_index = len(data) - 1
 data = data.sort(column_name)
@@ -162,14 +182,17 @@ data = data.filter(
     with_indices=True,
     load_from_cache_file=False,
 )
+print(data)
+print("step-2 finished")
 
+print("saving")
+data.save_to_disk("pubmed_raw_text_v4")
+print("saved")
 
 print(
     "# tokens (after preprocessing) :", count_tokens(data, column_name="preprocessed")
 )
 print(data)
 
-
-data.save_to_disk("pubmed_raw_text_v2")
 if push_to_hub:
     data.push_to_hub("ddp-iitm/pubmed_raw_text_v2", private=True)
