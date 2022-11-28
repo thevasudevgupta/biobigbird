@@ -28,8 +28,8 @@ trainer:
   batch_size_per_device: 1
   wandb_project_name: biobigbird
   epochs_save_dir: model_1st
-  num_save_steps: -1
-  num_eval_steps: 200
+  num_save_steps: 10000
+  num_eval_steps: 1000
   logging_steps: 4
   max_steps_per_epoch: -1
 

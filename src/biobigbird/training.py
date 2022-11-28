@@ -83,8 +83,8 @@ class TrainerConfig(BaseConfig):
     batch_size_per_device: int
     wandb_project_name: str = "biobigbird"
     epochs_save_dir: Optional[str] = None
-    num_save_steps: int = 1000
-    num_eval_steps: int = 1000
+    num_save_steps: int = 10000
+    num_eval_steps: int = 10000
     logging_steps: int = 1
     max_steps_per_epoch: int = -1
 

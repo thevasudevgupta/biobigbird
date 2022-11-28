@@ -220,7 +220,7 @@ else:
     dataset = load_dataset(dataset_id, use_auth_token=True)
 
 train_data, val_data = dataset["train"], dataset["validation"]
-val_data = val_data.select(range(40000))
+val_data = val_data.take(40000)
 print("train_data:", train_data)
 print("val_data:", val_data)
 
