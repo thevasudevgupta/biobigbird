@@ -14,12 +14,24 @@ def hf_save_fn(
     tokenizer_save_fn,
     push_to_hub=False,
     repo_id=None,
+    commit_message=None,
 ):
     save_dir = str(save_dir)
     if push_to_hub:
         assert repo_id is not None
-    model_save_fn(save_dir, params=params, push_to_hub=push_to_hub, repo_id=repo_id)
-    tokenizer_save_fn(save_dir, push_to_hub=push_to_hub, repo_id=repo_id)
+    model_save_fn(
+        save_dir,
+        params=params,
+        push_to_hub=push_to_hub,
+        repo_id=repo_id,
+        commit_message=commit_message,
+    )
+    tokenizer_save_fn(
+        save_dir,
+        push_to_hub=push_to_hub,
+        repo_id=repo_id,
+        commit_message=commit_message,
+    )
 
 
 def linear_scheduler_with_warmup(lr, init_lr, warmup_steps, num_train_steps):

@@ -1,7 +1,8 @@
 import math
+import sys
 from functools import partial
 from typing import Any, Callable, Dict, List, Tuple
-import sys
+
 import flax
 import jax
 import jax.numpy as jnp
@@ -17,6 +18,7 @@ from biobigbird.utils import (create_tx, hf_save_fn,
                               linear_scheduler_with_warmup, read_yaml)
 
 seed = 42
+
 
 def cross_entropy(logits, labels, ignore_index=IGNORE_INDEX):
     """
@@ -244,4 +246,10 @@ state = TrainState.create(
     lr_scheduler=lr_scheduler,
 )
 
-new_state = trainer.train(state, train_data, val_data, wandb_configs=configs_dict, total_num_steps_per_epoch=total_num_steps_per_epoch)
+new_state = trainer.train(
+    state,
+    train_data,
+    val_data,
+    wandb_configs=configs_dict,
+    total_num_steps_per_epoch=total_num_steps_per_epoch,
+)

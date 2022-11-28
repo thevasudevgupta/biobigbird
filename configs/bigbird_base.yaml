@@ -1,5 +1,5 @@
 script:
-  push_to_hub: true
+  push_to_hub: false
   repo_id: ddp-iitm/bigbird_base_pubmed_raw_text_v3
 
 data:

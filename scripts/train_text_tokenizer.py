@@ -17,7 +17,7 @@ ds = load_dataset(
 )
 ds = ds.shuffle(seed=42).take(num_samples)
 
-iterator = (sample['text'] for sample in ds)
+iterator = (sample["text"] for sample in ds)
 
 tokenizer = tokenizer.train_new_from_iterator(iterator, vocab_size=vocab_size)
 print(tokenizer)

@@ -5,13 +5,14 @@ from typing import Any, Callable, Dict, Optional, Union
 import jax
 import jax.numpy as jnp
 import pydantic
-import wandb
 from flax import jax_utils, struct
 from flax.serialization import from_bytes, to_bytes
 from flax.training import train_state
 from flax.training.common_utils import shard
 from torch.utils.data import DataLoader
 from tqdm.auto import tqdm
+
+import wandb
 
 PathType = Union[Path, str]
 OPTIMIZER_STATE_PATH = "optim_state.msgpack"
@@ -42,8 +43,12 @@ class BaseConfig(pydantic.BaseModel):
     def to_dict(self):
         return self.dict()
 
-import datasets
+
 from typing import Tuple
+
+import datasets
+
+
 class IterableDataLoader:
     def __init__(
         self,
@@ -202,7 +207,9 @@ class Trainer:
                         outputs = validation_step(state, batch)
                         val_loss += jax_utils.unreplicate(outputs.loss)
                         val_steps += 1
-                    logger.log({"val_loss": val_loss.item() / val_steps, "epoch": epoch})
+                    logger.log(
+                        {"val_loss": val_loss.item() / val_steps, "epoch": epoch}
+                    )
 
         # jax.profiler.stop_trace()
 
@@ -219,7 +226,7 @@ class Trainer:
         ckpt_dir.mkdir(exist_ok=True, parents=True)
 
         if self.model_save_fn is not None:
-            self.model_save_fn(ckpt_dir, state.params)
+            self.model_save_fn(ckpt_dir, state.params, commit_message=str(ckpt_dir))
         else:
             with open(ckpt_dir / MODEL_PATH, "wb") as f:
                 f.write(to_bytes(state.params))
