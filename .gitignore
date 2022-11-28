@@ -7,6 +7,10 @@ __pycache__/
 data/
 tmp/
 
+wandb/
+*.msgpack
+*.bin
+
 *.jsonl
 .vscode/
 __MACOSX/
