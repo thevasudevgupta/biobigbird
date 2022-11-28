@@ -83,7 +83,8 @@ class TrainerConfig(BaseConfig):
     batch_size_per_device: int
     wandb_project_name: str = "biobigbird"
     epochs_save_dir: Optional[str] = None
-    num_save_steps: int = 5000
+    num_save_steps: int = 1000
+    num_eval_steps: int = 1000
     logging_steps: int = 1
     max_steps_per_epoch: int = -1
 
@@ -201,6 +202,7 @@ class Trainer:
                             Path(self.config.epochs_save_dir, f"step-{step + 1}"),
                         )
 
+                if (step + 1) % self.config.num_eval_steps == 0:
                     val_steps, val_loss = 0, jnp.array(0)
                     for batch in tqdm(val_data, desc="evaluating ..."):
                         batch = shard(batch)
