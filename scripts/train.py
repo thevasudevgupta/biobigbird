@@ -1,7 +1,7 @@
 import math
 from functools import partial
 from typing import Any, Callable, Dict, List, Tuple
-
+import sys
 import flax
 import jax
 import jax.numpy as jnp
@@ -16,6 +16,7 @@ from biobigbird.training import (BaseConfig, Trainer, TrainerConfig,
 from biobigbird.utils import (create_tx, hf_save_fn,
                               linear_scheduler_with_warmup, read_yaml)
 
+seed = 42
 
 def cross_entropy(logits, labels, ignore_index=IGNORE_INDEX):
     """
@@ -99,6 +100,9 @@ class DataCollatorForMLM:
         articles = [
             " ".join(sample[self.config.column_name].split()) for sample in batch
         ]
+        # _ = [print(article) for article in articles]
+        # print()
+
         inputs = self.tokenizer(
             # abstracts,
             articles,
@@ -156,7 +160,7 @@ class TrainState(train_state.TrainState):
     lr_scheduler: Callable = flax.struct.field(pytree_node=False)
 
 
-configs_dict = read_yaml("config.yaml")
+configs_dict = read_yaml(sys.argv[1])
 print(configs_dict)
 print(jax.devices())
 
@@ -165,12 +169,12 @@ model_id = model_config.pop("model_id")
 tokenizer_id = model_config["tokenizer_id"]
 if model_id is None:
     assert tokenizer_id is not None
-    config = BigBirdConfig(**model_config)
+    tokenizer = AutoTokenizer.from_pretrained(tokenizer_id, use_auth_token=True)
+    config = BigBirdConfig(**model_config, vocab_size=tokenizer.vocab_size)
     model = FlaxBigBirdForMaskedLM(config)
-    tokenizer = AutoTokenizer.from_pretrained(tokenizer_id, use_auth_token=HF_TOKEN)
 else:
     model = FlaxBigBirdForMaskedLM.from_pretrained(
-        model_id, **model_config, use_auth_token=HF_TOKEN
+        model_id, **model_config, use_auth_token=True
     )
     tokenizer = AutoTokenizer.from_pretrained(model_id)
 
@@ -184,7 +188,8 @@ save_fn = partial(
     hf_save_fn,
     model_save_fn=model.save_pretrained,
     tokenizer_save_fn=tokenizer.save_pretrained,
-    push_to_hub=False,
+    push_to_hub=configs_dict["script"]["push_to_hub"],
+    repo_id=configs_dict["script"]["repo_id"],
 )
 
 trainer_config = TrainerConfig.from_dict(configs_dict["trainer"])
@@ -199,25 +204,29 @@ trainer = Trainer(
 )
 
 data_config = configs_dict["data"]
-streaming = datacollator_config["streaming"]
+streaming = data_config["streaming"]
 should_load_from_disk = data_config["should_load_from_disk"]
 dataset_id = data_config["dataset_id"]
+num_examples = data_config["num_examples"]
 
 if streaming:
     assert not should_load_from_disk
-    dataset = load_dataset(dataset_id, streaming=True, use_auth_token=HF_TOKEN)
+    dataset = load_dataset(dataset_id, streaming=True, use_auth_token=True)
 elif should_load_from_disk:
     dataset = load_from_disk(dataset_id)
 else:
-    dataset = load_dataset(dataset_id, use_auth_token=HF_TOKEN)
+    dataset = load_dataset(dataset_id, use_auth_token=True)
 
 train_data, val_data = dataset["train"], dataset["validation"]
 print("train_data:", train_data)
 print("val_data:", val_data)
 
+num_examples = num_examples if num_examples is not None else len(train_data)
+
 # we are dropping the last batch for now
 batch_size = trainer_config.batch_size_per_device * jax.device_count()
-num_steps = math.ceil(len(train_data) // batch_size) * trainer_config.max_epochs
+total_num_steps_per_epoch = math.ceil(num_examples // batch_size)
+num_steps = total_num_steps_per_epoch * trainer_config.max_epochs
 
 lr_scheduler = linear_scheduler_with_warmup(
     configs_dict["optax"]["lr"],
@@ -235,4 +244,4 @@ state = TrainState.create(
     lr_scheduler=lr_scheduler,
 )
 
-new_state = trainer.train(state, train_data, val_data, wandb_configs=configs_dict)
+new_state = trainer.train(state, train_data, val_data, wandb_configs=configs_dict, total_num_steps_per_epoch=total_num_steps_per_epoch)

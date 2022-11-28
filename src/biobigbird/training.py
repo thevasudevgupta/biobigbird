@@ -42,12 +42,43 @@ class BaseConfig(pydantic.BaseModel):
     def to_dict(self):
         return self.dict()
 
+import datasets
+from typing import Tuple
+class IterableDataLoader:
+    def __init__(
+        self,
+        dataset: datasets.IterableDataset,
+        batch_size: int = 1,
+        collate_fn: Optional[Callable] = None,
+    ):
+        self.dataset = dataset
+        self.batch_size = batch_size
+        self.collate_fn = collate_fn
+
+    def __iter__(
+        self,
+    ) -> Union[Tuple[jnp.DeviceArray], Dict[str, jnp.DeviceArray], jnp.DeviceArray]:
+        batch = []
+        for i, sample in enumerate(self.dataset):
+            batch.append(sample)
+
+            if (i + 1) % self.batch_size == 0:
+                if self.collate_fn is not None:
+                    batch = self.collate_fn(batch)
+
+                yield batch
+                batch = []
+
+    def shuffle(self, seed: int):
+        self.dataset.set_epoch(seed)
+
 
 class TrainerConfig(BaseConfig):
     max_epochs: int
     batch_size_per_device: int
     wandb_project_name: str = "biobigbird"
     epochs_save_dir: Optional[str] = None
+    num_save_steps: int = 5000
     logging_steps: int = 1
     max_steps_per_epoch: int = -1
 
@@ -79,6 +110,7 @@ class Trainer:
         val_data,
         wandb_configs: Optional[Dict[str, Any]] = None,
         seed: int = 0,
+        total_num_steps_per_epoch: Optional[int] = None,
     ):
         wandb_configs = wandb_configs or self.config.to_dict()
         logger = wandb.init(
@@ -93,26 +125,26 @@ class Trainer:
         num_workers = self.config.dataloader_num_workers
         prefetch_factor = self.config.dataloader_prefetch_factor
 
-        train_data = DataLoader(
-            train_data,
+        train_data = IterableDataLoader(
+            train_data.shuffle(seed=seed),
             batch_size=batch_size,
             collate_fn=self.collate_fn,
-            shuffle=True,
-            pin_memory=pin_memory,
-            num_workers=num_workers,
-            drop_last=True,
-            prefetch_factor=prefetch_factor,
+            # shuffle=False,
+            # pin_memory=pin_memory,
+            # num_workers=num_workers,
+            # drop_last=True,
+            # prefetch_factor=prefetch_factor,
         )
 
-        val_data = DataLoader(
+        val_data = IterableDataLoader(
             val_data,
             batch_size=batch_size,
             collate_fn=self.collate_fn,
-            shuffle=False,
-            pin_memory=pin_memory,
-            num_workers=num_workers,
-            drop_last=True,
-            prefetch_factor=prefetch_factor,
+            # shuffle=False,
+            # pin_memory=pin_memory,
+            # num_workers=num_workers,
+            # drop_last=True,
+            # prefetch_factor=prefetch_factor,
         )
 
         state = jax_utils.replicate(state)
@@ -128,8 +160,10 @@ class Trainer:
             pbar = tqdm(
                 enumerate(train_data),
                 desc=f"Running epoch-{epoch}",
-                total=len(train_data),
+                total=total_num_steps_per_epoch,
             )
+            if seed is not None:
+                train_data.shuffle(epoch + seed)
             for step, batch in pbar:
                 batch = shard(batch)
 
@@ -155,19 +189,20 @@ class Trainer:
                 if (step + 1) == self.config.max_steps_per_epoch:
                     break
 
-            if self.config.epochs_save_dir is not None:
-                self.save_checkpoint(
-                    jax_utils.unreplicate(state),
-                    Path(self.config.epochs_save_dir, f"epoch-{epoch}"),
-                )
+                if (step + 1) % self.config.num_save_steps == 0:
+                    if self.config.epochs_save_dir is not None:
+                        self.save_checkpoint(
+                            jax_utils.unreplicate(state),
+                            Path(self.config.epochs_save_dir, f"step-{step + 1}"),
+                        )
 
-            val_steps, val_loss = 0, jnp.array(0)
-            for batch in tqdm(val_data, desc="evaluating ...", total=len(val_data)):
-                batch = shard(batch)
-                outputs = validation_step(state, batch)
-                val_loss += jax_utils.unreplicate(outputs.loss)
-                val_steps += 1
-            logger.log({"val_loss": val_loss.item() / val_steps, "epoch": epoch})
+                    val_steps, val_loss = 0, jnp.array(0)
+                    for batch in tqdm(val_data, desc="evaluating ..."):
+                        batch = shard(batch)
+                        outputs = validation_step(state, batch)
+                        val_loss += jax_utils.unreplicate(outputs.loss)
+                        val_steps += 1
+                    logger.log({"val_loss": val_loss.item() / val_steps, "epoch": epoch})
 
         # jax.profiler.stop_trace()
 

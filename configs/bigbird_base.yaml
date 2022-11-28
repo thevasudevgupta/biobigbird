@@ -1,33 +1,40 @@
+script:
+  push_to_hub: true
+  repo_id: ddp-iitm/bigbird_base_pubmed_raw_text_v3
+
 data:
   streaming: true
   should_load_from_disk: false
   dataset_id: ddp-iitm/pubmed_raw_text_v3
 
+  # ignore if streaming=False
+  num_examples: 2340483
 
 model:
   model_id: null
   tokenizer_id: ddp-iitm/pubmed_raw_text_v3_tokenizer
   attention_type: block_sparse
-  block_size: 128
+  block_size: 64
   num_random_blocks: 3
 
 data_collator:
-  max_length: 4096
+  max_length: 512
   mlm_probability: 0.2
 
-  column_name: article
+  column_name: text
 
 trainer:
-  max_epochs: 5
+  max_epochs: 2
   batch_size_per_device: 2
   wandb_project_name: biobigbird
   epochs_save_dir: model_1st
-  logging_steps: 128
+  num_save_steps: 200
+  logging_steps: 4
   max_steps_per_epoch: -1
 
   dataloader_num_workers: 2
   dataloader_pin_memory: false
-  dataloader_prefetch_factor: 2
+  dataloader_prefetch_factor: 8
 
 optax:
   lr: 5.e-5

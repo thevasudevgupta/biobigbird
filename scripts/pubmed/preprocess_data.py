@@ -18,7 +18,7 @@ import re
 from datasets import load_dataset, load_from_disk
 from tqdm.auto import tqdm
 
-push_to_hub = True
+push_to_hub = False
 num_proc = 8
 numbers_pattern = re.compile("\d+")
 

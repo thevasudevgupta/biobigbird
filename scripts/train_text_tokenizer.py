@@ -1,7 +1,7 @@
 from datasets import load_dataset, load_from_disk
 from transformers import AutoTokenizer
 
-push_to_hub = True
+push_to_hub = False
 vocab_size = 32000
 batch_size = 1000
 num_samples = 100000
