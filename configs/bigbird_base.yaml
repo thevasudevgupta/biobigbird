@@ -1,6 +1,6 @@
 script:
   push_to_hub: true
-  repo_id: ddp-iitm/bigbird_base_pubmed_raw_text_v3
+  repo_id: ddp-iitm/bigbird_base_v4_pubmed_raw_text_v3
 
 data:
   streaming: true
@@ -11,8 +11,9 @@ data:
   num_examples: 2340483
 
 model:
-  model_id: null
-  tokenizer_id: ddp-iitm/pubmed_raw_text_v3_tokenizer
+  model_id: ddp-iitm/bigbird_base_v3_pubmed_raw_text_v3
+  tokenizer_id: ddp-iitm/bigbird_base_v3_pubmed_raw_text_v3
+  revision: 1f3a9f4a511e395f150332b70001f1b76102cf4c
   attention_type: block_sparse
   block_size: 128
   num_random_blocks: 3
@@ -38,7 +39,7 @@ trainer:
   dataloader_prefetch_factor: 8
 
 optax:
-  lr: 1.e-4
+  lr: 2.e-5
   init_lr: 1.e-7
   warmup_steps: 5000
   weight_decay: 1.e-2

@@ -169,16 +169,17 @@ print(jax.devices())
 model_config = configs_dict["model"]
 model_id = model_config.pop("model_id")
 tokenizer_id = model_config["tokenizer_id"]
+revision = model_config.pop('revision', None)
 if model_id is None:
     assert tokenizer_id is not None
-    tokenizer = AutoTokenizer.from_pretrained(tokenizer_id, use_auth_token=True)
+    tokenizer = AutoTokenizer.from_pretrained(tokenizer_id, use_auth_token=True, revision=revision)
     config = BigBirdConfig(**model_config, vocab_size=tokenizer.vocab_size)
     model = FlaxBigBirdForMaskedLM(config)
 else:
     model = FlaxBigBirdForMaskedLM.from_pretrained(
-        model_id, **model_config, use_auth_token=True
+        model_id, **model_config, use_auth_token=True, revision=revision
     )
-    tokenizer = AutoTokenizer.from_pretrained(model_id)
+    tokenizer = AutoTokenizer.from_pretrained(model_id, use_auth_token=True, revision=revision)
 
 print(model.config)
 print(tokenizer)
