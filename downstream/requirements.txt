@@ -1,0 +1,6 @@
+pydantic
+torch
+datasets
+tqdm
+transformers
+wandb
