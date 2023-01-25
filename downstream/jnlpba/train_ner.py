@@ -32,7 +32,7 @@ class TrainingArgs(pydantic.BaseModel):
 
     project_name: str = "bigbird-downstream"
 
-    push_to_hub: bool = False
+    push_to_hub: bool = True
     repo_id: str = "ddp-iitm/ner_jnlpba"
 
 
@@ -135,7 +135,9 @@ def collate_fn(batch: List[Dict[str, Any]]) -> Dict[str, torch.Tensor]:
     labels = torch.tensor(labels, dtype=torch.long)
     # batch_size, seqlen
 
-    print(inputs["input_ids"].shape, inputs["attention_mask"].shape, labels.shape)
+    labels[labels == label2idx["O"]] = IGNORE_INDEX
+
+    # print(inputs["input_ids"].shape, inputs["attention_mask"].shape, labels.shape)
 
     # exit()
     return {
@@ -222,5 +224,6 @@ for epoch in range(args.epochs):
         repo_id=args.repo_id,
         commit_message=commit_message,
     )
+    print("model saved in", save_dir)
 
 logger.finish()
