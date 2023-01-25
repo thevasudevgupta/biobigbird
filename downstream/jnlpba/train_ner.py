@@ -13,6 +13,10 @@ from transformers import AutoTokenizer, BigBirdForTokenClassification
 import wandb
 
 IGNORE_INDEX = -10
+SEED = 0
+
+torch.backends.cudnn.benchmark = True
+torch.manual_seed(SEED)
 
 
 class TrainingArgs(pydantic.BaseModel):
@@ -53,8 +57,16 @@ label2idx = {label: idx for idx, label in enumerate(sorted(train_unique_labels))
 idx2label = {idx: label for label, idx in label2idx.items()}
 num_labels = len(label2idx)
 
+b_to_i_label = {}
+for idx, label in idx2label.items():
+    if label.startswith("B-") and label.replace("B-", "I-") in label2idx:
+        b_to_i_label[label] = label.replace("B-", "I-")
+    else:
+        b_to_i_label[label] = label
+print("b_to_i_label:", b_to_i_label)
+
 args = TrainingArgs()
-print(args)
+print(args.json(indent=2))
 
 logger = wandb.init(project=args.project_name, config=args.dict())
 
@@ -82,8 +94,32 @@ print(train_data[0])
 print(valid_data[0])
 
 
+def tokenize_labels(batch_labels, inputs):
+    global label2idx, b_to_i_label
+    output_labels = []
+    for i, labels in enumerate(batch_labels):
+        tmp_labels = []
+        previous_word_idx = None
+        for word_idx in inputs.word_ids(batch_index=i):
+            if word_idx is None:
+                tmp_labels.append(IGNORE_INDEX)
+            elif word_idx != previous_word_idx:
+                # tmp_labels.append(labels[word_idx])
+                tmp_labels.append(label2idx[labels[word_idx]])
+            else:
+                # tmp_labels.append(b_to_i_label[labels[word_idx]])
+                tmp_labels.append(label2idx[b_to_i_label[labels[word_idx]]])
+            previous_word_idx = word_idx
+        output_labels.append(tmp_labels)
+
+    return output_labels
+
+
 def collate_fn(batch: List[Dict[str, Any]]) -> Dict[str, torch.Tensor]:
+    global tokenizer
     input_text = [sample["sent"] for sample in batch]
+    # print(input_text)
+    # print([[tokenizer.tokenize(token) for token in text] for text in input_text])
     inputs = tokenizer(
         input_text,
         padding=True,
@@ -93,23 +129,24 @@ def collate_fn(batch: List[Dict[str, Any]]) -> Dict[str, torch.Tensor]:
         is_split_into_words=True,
     )
     # batch_size, seqlen
-    print(inputs)
-    print([sample["labels"] for sample in batch])
+    # print(inputs)
+    # print([sample["labels"] for sample in batch])
 
-    labels = []
+    labels = tokenize_labels([sample["labels"] for sample in batch], inputs)
+    # print(labels)
 
     input_ids = inputs["input_ids"]
     attention_mask = inputs["attention_mask"]
     # batch_size, seqlen
 
-    padding_lengths = (input_ids.shape[1] - attention_mask.sum(dim=1)).numpy().tolist()
-    labels = [
-        sample + [IGNORE_INDEX] * padding_lengths[i] for i, sample in enumerate(labels)
-    ]
+    # padding_lengths = (input_ids.shape[1] - attention_mask.sum(dim=1)).numpy().tolist()
+    # labels = [
+    #     sample + [IGNORE_INDEX] * padding_lengths[i] for i, sample in enumerate(labels)
+    # ]
     labels = torch.tensor(labels, dtype=torch.long)
     # batch_size, seqlen
 
-    exit()
+    # exit()
     return {
         "input_ids": input_ids,
         "attention_mask": attention_mask,
@@ -142,8 +179,11 @@ checkpoint_dir.mkdir(exist_ok=True, parents=True)
 
 batch_loss = torch.tensor(0.0, device=device)
 for epoch in range(args.epochs):
-    desc = f"Running epoch-{epoch+1}"
-    for step, batch in tqdm(enumerate(train_dataloader), desc=desc):
+    for step, batch in tqdm(
+        enumerate(train_dataloader),
+        desc=f"Running epoch-{epoch+1}",
+        total=len(train_dataloader),
+    ):
         model.train()
         batch = {k: v.to(device) for k, v in batch.items()}
         labels = batch.pop("labels")
@@ -162,7 +202,11 @@ for epoch in range(args.epochs):
 
     val_loss = torch.tensor(0.0, device=device)
     num_iters = 0
-    for batch in tqdm(valid_dataloader, f"evaulating epoch-{epoch+1}"):
+    for batch in tqdm(
+        valid_dataloader,
+        desc=f"evaulating epoch-{epoch+1}",
+        total=len(valid_dataloader),
+    ):
         model.eval()
         batch = {k: v.to(device) for k, v in batch.items()}
         labels = batch.pop("labels")
