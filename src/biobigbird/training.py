@@ -195,15 +195,25 @@ class Trainer:
                 if (step + 1) == self.config.max_steps_per_epoch:
                     break
 
-                if (step + 1) % self.config.num_save_steps == 0 and self.config.num_save_steps > 0:
+                if (
+                    (step + 1) % self.config.num_save_steps == 0
+                    and self.config.num_save_steps > 0
+                ):
                     if self.config.epochs_save_dir is not None:
                         print("saving step -", step + 1)
                         self.save_checkpoint(
                             jax_utils.unreplicate(state),
-                            Path(self.config.epochs_save_dir, f"epoch-{epoch+1}", f'step-{step+1}'),
+                            Path(
+                                self.config.epochs_save_dir,
+                                f"epoch-{epoch+1}",
+                                f"step-{step+1}",
+                            ),
                         )
 
-                if (step + 1) % self.config.num_eval_steps == 0 and self.config.num_eval_steps > 0:
+                if (
+                    (step + 1) % self.config.num_eval_steps == 0
+                    and self.config.num_eval_steps > 0
+                ):
                     val_steps, val_loss = 0, jnp.array(0)
                     for batch in tqdm(val_data, desc="evaluating ..."):
                         batch = shard(batch)
@@ -219,7 +229,7 @@ class Trainer:
                     logger.log(loggings)
 
             if self.config.epochs_save_dir is not None:
-                print('saving epoch -', epoch + 1)
+                print("saving epoch -", epoch + 1)
                 self.save_checkpoint(
                     jax_utils.unreplicate(state),
                     Path(self.config.epochs_save_dir, f"epoch-{epoch + 1}"),
