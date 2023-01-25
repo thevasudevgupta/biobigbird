@@ -8,8 +8,10 @@ PyYAML
 pydantic
 tqdm
 python-dotenv
-torch # dataloader dependency
+torch
 fire
+seqeval
+evaluate
 
 # data preprocessing dependencies
 PyPDF2
