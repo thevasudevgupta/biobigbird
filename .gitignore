@@ -12,6 +12,7 @@ wandb/
 *.bin
 model_1st/
 checkpoints
+*.iob2
 
 *.jsonl
 .vscode/

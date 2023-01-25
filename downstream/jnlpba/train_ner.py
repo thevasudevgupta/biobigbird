@@ -3,6 +3,7 @@
 from pathlib import Path
 from typing import Any, Dict, List
 
+import evaluate
 import pydantic
 import torch
 import torch.nn as nn
@@ -32,7 +33,7 @@ class TrainingArgs(pydantic.BaseModel):
 
     project_name: str = "bigbird-downstream"
 
-    push_to_hub: bool = True
+    push_to_hub: bool = False
     repo_id: str = "ddp-iitm/ner_jnlpba"
 
 
@@ -95,6 +96,9 @@ valid_data = [
 
 print(train_data[0])
 print(valid_data[0])
+
+
+train_data = train_data[:10]
 
 
 def tokenize_labels(batch_labels, inputs):
@@ -170,6 +174,25 @@ loss_fn = nn.CrossEntropyLoss(ignore_index=IGNORE_INDEX)
 checkpoint_dir = Path(args.save_dir)
 checkpoint_dir.mkdir(exist_ok=True, parents=True)
 
+
+def get_predictions_and_references(logits, labels):
+    predictions = logits.argmax(-1)
+    assert predictions.shape == labels.shape
+    y_pred = predictions.detach().cpu().numpy()
+    y_true = labels.detach().cpu().numpy()
+
+    # Remove ignored index (special tokens)
+    predictions = [
+        [idx2label[p] for (p, l) in zip(pred, gold_label) if l != IGNORE_INDEX]
+        for pred, gold_label in zip(y_pred, y_true)
+    ]
+    references = [
+        [idx2label[l] for (p, l) in zip(pred, gold_label) if l != IGNORE_INDEX]
+        for pred, gold_label in zip(y_pred, y_true)
+    ]
+    return predictions, references
+
+
 batch_loss = torch.tensor(0.0, device=device)
 for epoch in range(args.epochs):
     for step, batch in tqdm(
@@ -193,6 +216,7 @@ for epoch in range(args.epochs):
             logger.log({"train_loss": batch_loss.item() / args.num_accumulation_steps})
             batch_loss = torch.tensor(0.0, device=device)
 
+    metric = evaluate.load("seqeval")
     val_loss = torch.tensor(0.0, device=device)
     num_iters = 0
     for batch in tqdm(
@@ -207,19 +231,32 @@ for epoch in range(args.epochs):
             logits = model(**batch).logits
         val_loss += loss_fn(logits.view(-1, num_labels), labels.view(-1))
         num_iters += 1
-    logger.log({"validation_loss": val_loss.item() / num_iters, "epoch": epoch + 1})
+
+        predictions, references = get_predictions_and_references(logits, labels)
+        metric.add_batch(predictions=predictions, references=references)
+
+    eval_metric = metric.compute()
+    print(eval_metric)
+
+    logger.log(
+        {
+            "validation_loss": val_loss.item() / num_iters,
+            "epoch": epoch + 1,
+            **eval_metric,
+        }
+    )
 
     save_dir = checkpoint_dir / f"epoch-{epoch+1}"
     commit_message = str(save_dir)
     torch.save(optimizer.state_dict(), save_dir / "optimizer_state.bin")
     model.save_pretrained(
-        save_dir,
+        str(save_dir),
         push_to_hub=args.push_to_hub,
         repo_id=args.repo_id,
         commit_message=commit_message,
     )
     tokenizer.save_pretrained(
-        save_dir,
+        str(save_dir),
         push_to_hub=args.push_to_hub,
         repo_id=args.repo_id,
         commit_message=commit_message,
