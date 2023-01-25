@@ -21,10 +21,10 @@ torch.manual_seed(SEED)
 
 class TrainingArgs(pydantic.BaseModel):
     epochs: int = 10
-    batch_size: int = 8
+    batch_size: int = 64
     num_workers: int = 0
 
-    lr: float = 1.0e-5
+    lr: float = 5.0e-5
     num_accumulation_steps: int = 1
     max_length: int = 4096
 
@@ -34,13 +34,13 @@ class TrainingArgs(pydantic.BaseModel):
 
 
 train_files = [
-    "/Users/vasudevgupta/downloads/Genia4ERtraining/Genia4ERtask1.iob2",
-    "/Users/vasudevgupta/downloads/Genia4ERtraining/Genia4ERtask2.iob2",
+    "train_data/Genia4ERtask1.iob2",
+    "train_data/Genia4ERtask2.iob2",
 ]
 
 valid_files = [
-    "/Users/vasudevgupta/downloads/Genia4ERtest/Genia4EReval1.iob2",
-    "/Users/vasudevgupta/downloads/Genia4ERtest/Genia4EReval2.iob2",
+    "valid_data/Genia4EReval1.iob2",
+    "valid_data/Genia4EReval2.iob2",
 ]
 
 train_data, train_labels = build_data_from_multiple_files(train_files)
@@ -118,8 +118,6 @@ def tokenize_labels(batch_labels, inputs):
 def collate_fn(batch: List[Dict[str, Any]]) -> Dict[str, torch.Tensor]:
     global tokenizer
     input_text = [sample["sent"] for sample in batch]
-    # print(input_text)
-    # print([[tokenizer.tokenize(token) for token in text] for text in input_text])
     inputs = tokenizer(
         input_text,
         padding=True,
@@ -129,27 +127,15 @@ def collate_fn(batch: List[Dict[str, Any]]) -> Dict[str, torch.Tensor]:
         is_split_into_words=True,
     )
     # batch_size, seqlen
-    # print(inputs)
-    # print([sample["labels"] for sample in batch])
 
     labels = tokenize_labels([sample["labels"] for sample in batch], inputs)
-    # print(labels)
-
-    input_ids = inputs["input_ids"]
-    attention_mask = inputs["attention_mask"]
-    # batch_size, seqlen
-
-    # padding_lengths = (input_ids.shape[1] - attention_mask.sum(dim=1)).numpy().tolist()
-    # labels = [
-    #     sample + [IGNORE_INDEX] * padding_lengths[i] for i, sample in enumerate(labels)
-    # ]
     labels = torch.tensor(labels, dtype=torch.long)
     # batch_size, seqlen
 
     # exit()
     return {
-        "input_ids": input_ids,
-        "attention_mask": attention_mask,
+        "input_ids": inputs["input_ids"],
+        "attention_mask": inputs["attention_mask"],
         "labels": labels,
     }
 
