@@ -98,7 +98,7 @@ print(train_data[0])
 print(valid_data[0])
 
 
-train_data = train_data[:10]
+# train_data = train_data[:10]
 
 
 def tokenize_labels(batch_labels, inputs):
@@ -242,11 +242,12 @@ for epoch in range(args.epochs):
         {
             "validation_loss": val_loss.item() / num_iters,
             "epoch": epoch + 1,
-            **eval_metric,
+            "eval_metric": eval_metric,
         }
     )
 
     save_dir = checkpoint_dir / f"epoch-{epoch+1}"
+    save_dir.mkdir(exist_ok=True, parents=True)
     commit_message = str(save_dir)
     torch.save(optimizer.state_dict(), save_dir / "optimizer_state.bin")
     model.save_pretrained(
