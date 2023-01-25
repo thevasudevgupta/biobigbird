@@ -20,17 +20,20 @@ torch.manual_seed(SEED)
 
 
 class TrainingArgs(pydantic.BaseModel):
-    epochs: int = 10
-    batch_size: int = 64
+    epochs: int = 100
+    batch_size: int = 16
     num_workers: int = 0
 
     lr: float = 5.0e-5
     num_accumulation_steps: int = 1
     max_length: int = 4096
 
-    save_dir: str = "checkpoints"
+    save_dir: str = "ner_checkpoints"
 
     project_name: str = "bigbird-downstream"
+
+    push_to_hub: bool = False
+    repo_id: str = "ddp-iitm/ner_jnlpba"
 
 
 train_files = [
@@ -78,7 +81,7 @@ model.config.label2id = label2idx
 model.config.id2label = idx2label
 
 tokenizer = AutoTokenizer.from_pretrained(model_id, use_auth_token=True)
-print(model)
+# print(model)
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 model.to(device)
@@ -131,6 +134,8 @@ def collate_fn(batch: List[Dict[str, Any]]) -> Dict[str, torch.Tensor]:
     labels = tokenize_labels([sample["labels"] for sample in batch], inputs)
     labels = torch.tensor(labels, dtype=torch.long)
     # batch_size, seqlen
+
+    print(inputs["input_ids"].shape, inputs["attention_mask"].shape, labels.shape)
 
     # exit()
     return {
@@ -203,8 +208,19 @@ for epoch in range(args.epochs):
     logger.log({"validation_loss": val_loss.item() / num_iters, "epoch": epoch + 1})
 
     save_dir = checkpoint_dir / f"epoch-{epoch+1}"
-    model.save_pretrained(save_dir)
-    tokenizer.save_pretrained(save_dir)
+    commit_message = str(save_dir)
     torch.save(optimizer.state_dict(), save_dir / "optimizer_state.bin")
+    model.save_pretrained(
+        save_dir,
+        push_to_hub=args.push_to_hub,
+        repo_id=args.repo_id,
+        commit_message=commit_message,
+    )
+    tokenizer.save_pretrained(
+        save_dir,
+        push_to_hub=args.push_to_hub,
+        repo_id=args.repo_id,
+        commit_message=commit_message,
+    )
 
 logger.finish()
