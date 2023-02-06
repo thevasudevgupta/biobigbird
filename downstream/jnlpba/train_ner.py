@@ -23,10 +23,10 @@ torch.manual_seed(SEED)
 class TrainingArgs(pydantic.BaseModel):
     epochs: int = 100
     batch_size: int = 16
-    num_workers: int = 0
+    num_workers: int = 2
 
     lr: float = 1.0e-5
-    num_accumulation_steps: int = 1
+    num_accumulation_steps: int = 8
     max_length: int = 4096
 
     save_dir: str = "ner_checkpoints"
@@ -212,7 +212,7 @@ for epoch in range(args.epochs):
 
         if (step + 1) % args.num_accumulation_steps == 0:
             optimizer.step()
-            optimizer.zero_grad()
+            optimizer.zero_grad(set_to_none=True)
             logger.log({"train_loss": batch_loss.item() / args.num_accumulation_steps})
             batch_loss = torch.tensor(0.0, device=device)
 
