@@ -6,6 +6,9 @@ __pycache__/
 .DS_Store
 data/
 tmp/
+*.txt
+*.csv
+biobigbird-finetuned-ner/
 
 wandb/
 *.msgpack
