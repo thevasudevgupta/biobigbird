@@ -1,6 +1,6 @@
 script:
   push_to_hub: true
-  repo_id: ddp-iitm/bigbird_base_v4_pubmed_raw_text_v3
+  repo_id: ddp-iitm/biobigbird-further-mimic3-pubmed-abstracts
 
 data:
   streaming: true
@@ -8,12 +8,14 @@ data:
   dataset_id: ddp-iitm/pubmed_raw_text_v3
 
   # ignore if streaming=False
-  num_examples: 2340483
+  num_examples: 2083179
+  # 2083179 for mimic3
+  #  for pubmed abstracts
 
 model:
-  model_id: ddp-iitm/bigbird_base_v3_pubmed_raw_text_v3
-  tokenizer_id: ddp-iitm/bigbird_base_v3_pubmed_raw_text_v3
-  revision: 1f3a9f4a511e395f150332b70001f1b76102cf4c
+  model_id: ddp-iitm/biobigbird-base-uncased
+  tokenizer_id: ddp-iitm/biobigbird-base-uncased
+  revision: null
   attention_type: block_sparse
   block_size: 128
   num_random_blocks: 3

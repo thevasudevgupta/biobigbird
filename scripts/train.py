@@ -17,6 +17,8 @@ from biobigbird.training import (BaseConfig, Trainer, TrainerConfig,
 from biobigbird.utils import (create_tx, hf_save_fn,
                               linear_scheduler_with_warmup, read_yaml)
 
+from cool import build_datasets
+
 seed = 42
 
 
@@ -216,16 +218,24 @@ should_load_from_disk = data_config["should_load_from_disk"]
 dataset_id = data_config["dataset_id"]
 num_examples = data_config["num_examples"]
 
-if streaming:
-    assert not should_load_from_disk
-    dataset = load_dataset(dataset_id, streaming=True, use_auth_token=True)
-elif should_load_from_disk:
-    dataset = load_from_disk(dataset_id)
-else:
-    dataset = load_dataset(dataset_id, use_auth_token=True)
+# if streaming:
+#     assert not should_load_from_disk
+#     dataset = load_dataset(dataset_id, streaming=True, use_auth_token=True)
+# elif should_load_from_disk:
+#     dataset = load_from_disk(dataset_id)
+# else:
+#     dataset = load_dataset(dataset_id, use_auth_token=True)
 
-train_data, val_data = dataset["train"], dataset["validation"]
-val_data = val_data.take(40000)
+
+assert streaming
+from datasets import Dataset
+dataset: Dataset = build_datasets()
+dataset = dataset.shuffle(seed=42)
+# dataset = dataset.train_test_split(test_size=40000, seed=42)
+# train_data, val_data = dataset["train"], dataset["validation"]
+val_data = dataset.take(40000)
+train_data = dataset.skip(40000)
+
 print("train_data:", train_data)
 print("val_data:", val_data)
 
