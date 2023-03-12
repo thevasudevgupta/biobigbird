@@ -3,15 +3,18 @@ push_to_hub = False
 
 from datasets import load_dataset
 
+
 def extract_abstracts(sample):
-    title = sample['MedlineCitation']['Article']['ArticleTitle']
-    abstract = sample['MedlineCitation']['Article']['Abstract']['AbstractText']
+    title = sample["MedlineCitation"]["Article"]["ArticleTitle"]
+    abstract = sample["MedlineCitation"]["Article"]["Abstract"]["AbstractText"]
     return {"text": " ".join((title + " " + abstract).split())}
 
 
 def build_dataset():
-    ds = load_dataset("pubmed", split='train')
-    remove_columns = ['MedlineCitation', 'PubmedData']
+    ds = load_dataset("pubmed")
+    print(ds)
+    exit()
+    remove_columns = ["MedlineCitation", "PubmedData"]
     ds = ds.map(lambda x: extract_abstracts(x), remove_columns=remove_columns)
     print(ds)
 
@@ -21,6 +24,7 @@ def build_dataset():
         print("\n\n")
 
     return ds
+
 
 ds = build_dataset()
 ds = ds.train_test_split(test_size=40000, seed=42)

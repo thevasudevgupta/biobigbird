@@ -7,6 +7,7 @@ import flax
 import jax
 import jax.numpy as jnp
 import numpy as np
+from cool import build_datasets
 from datasets import load_dataset, load_from_disk
 from flax.training import train_state
 from transformers import AutoTokenizer, BigBirdConfig, FlaxBigBirdForMaskedLM
@@ -16,8 +17,6 @@ from biobigbird.training import (BaseConfig, Trainer, TrainerConfig,
                                  TrainingStepOutput, ValidationStepOutput)
 from biobigbird.utils import (create_tx, hf_save_fn,
                               linear_scheduler_with_warmup, read_yaml)
-
-from cool import build_datasets
 
 seed = 42
 
@@ -229,6 +228,7 @@ num_examples = data_config["num_examples"]
 
 assert streaming
 from datasets import Dataset
+
 dataset: Dataset = build_datasets()
 dataset = dataset.shuffle(seed=42)
 # dataset = dataset.train_test_split(test_size=40000, seed=42)

@@ -7,11 +7,10 @@ import evaluate
 import pydantic
 import torch
 import torch.nn as nn
+import wandb
 from data import build_data_from_multiple_files, fetch_unique_labels
 from tqdm.auto import tqdm
 from transformers import AutoTokenizer, BigBirdForTokenClassification
-
-import wandb
 
 IGNORE_INDEX = -10
 SEED = 0
