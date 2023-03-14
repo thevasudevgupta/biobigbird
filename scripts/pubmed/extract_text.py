@@ -1,4 +1,4 @@
-# gzip -d -r downloads/pubmed_downloaded/
+# gzip -d -r downloads/pubmed_extracted/
 
 import glob
 from pathlib import Path
@@ -15,11 +15,11 @@ def extract_text(filename):
         data = f.read()
     data = BeautifulSoup(data, "xml")
     data = data.find_all("AbstractText")
-    data = [" ".join(tag.string.split()) for tag in data]
+    data = [" ".join(tag.text.split()) for tag in data]
     return data
 
 
-data_dir = Path("downloads/pubmed_downloaded/")
+data_dir = Path("downloads/pubmed_extracted/")
 files = glob.glob(str(data_dir / "*.xml"))
 
 target_filename = Path("pubmed_abstracts.txt")
