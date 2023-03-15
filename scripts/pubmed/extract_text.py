@@ -7,7 +7,7 @@ from bs4 import BeautifulSoup
 from datasets import load_dataset
 from tqdm.auto import tqdm
 
-push_to_hub = True
+push_to_hub = False
 
 
 def extract_text(filename):

@@ -8,9 +8,10 @@ data:
   dataset_id: ddp-iitm/pubmed_raw_text_v3
 
   # ignore if streaming=False
-  num_examples: 2083179
-  # 2083179 for mimic3
-  #  for pubmed abstracts
+  num_examples: 44816461
+  # + 2083179 for mimic3
+  # + 42773282 for pubmed abstracts
+  # - 40000 for validation
 
 model:
   model_id: ddp-iitm/biobigbird-base-uncased
@@ -21,7 +22,7 @@ model:
   num_random_blocks: 3
 
 data_collator:
-  max_length: 4096
+  max_length: 1024
   mlm_probability: 0.2
 
   column_name: text

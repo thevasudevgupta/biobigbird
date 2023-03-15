@@ -1,9 +1,7 @@
+from datasets import load_dataset, interleave_datasets
+
 def build_datasets():
-    pubmed_ds = load_dataset("pubmed", streaming=True, split="train")
-    remove_columns = ["MedlineCitation", "PubmedData"]
-    pubmed_ds = pubmed_ds.map(
-        lambda x: extract_abstracts(x), remove_columns=remove_columns
-    )
+    pubmed_ds = load_dataset("ddp-iitm/pubmed_abstracts", streaming=True, split="train")
     print(pubmed_ds)
 
     ok = iter(pubmed_ds)
