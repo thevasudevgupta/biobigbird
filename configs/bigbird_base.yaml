@@ -1,6 +1,6 @@
 script:
   push_to_hub: true
-  repo_id: ddp-iitm/biobigbird-further-mimic3-pubmed-abstracts
+  repo_id: ddp-iitm/biobigbird-further-pubmed-abstracts
 
 data:
   streaming: true
@@ -8,32 +8,32 @@ data:
   dataset_id: ddp-iitm/pubmed_raw_text_v3
 
   # ignore if streaming=False
-  num_examples: 44816461
+  num_examples: 42773282
   # + 2083179 for mimic3
   # + 42773282 for pubmed abstracts
   # - 40000 for validation
 
 model:
-  model_id: ddp-iitm/biobigbird-base-uncased
-  tokenizer_id: ddp-iitm/biobigbird-base-uncased
-  revision: null
-  attention_type: block_sparse
+  model_id: ddp-iitm/biobigbird-further-mimic3-pubmed-abstracts
+  tokenizer_id: ddp-iitm/biobigbird-further-mimic3-pubmed-abstracts
+  revision: 2e91fe58137056de66f2fad07495fe4c3e5d88e5
+  attention_type: original_full
   block_size: 128
   num_random_blocks: 3
 
 data_collator:
-  max_length: 1024
+  max_length: 512
   mlm_probability: 0.2
 
   column_name: text
 
 trainer:
   max_epochs: 10
-  batch_size_per_device: 8
+  batch_size_per_device: 32
   wandb_project_name: biobigbird
-  epochs_save_dir: biobigbird-further-mimic3-pubmed-abstracts_v1
-  num_save_steps: 20000
-  num_eval_steps: 20000
+  epochs_save_dir: biobigbird-further-pubmed-abstracts_v1
+  num_save_steps: 50000
+  num_eval_steps: 50000
   logging_steps: 128
   max_steps_per_epoch: -1
 
