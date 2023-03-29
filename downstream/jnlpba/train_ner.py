@@ -26,7 +26,7 @@ class TrainingArgs(pydantic.BaseModel):
 
     lr: float = 1.0e-5
     num_accumulation_steps: int = 8
-    max_length: int = 4096
+    max_length: int = 1024
 
     save_dir: str = "ner_checkpoints"
 
@@ -73,9 +73,11 @@ print(args.json(indent=2))
 
 logger = wandb.init(project=args.project_name, config=args.dict())
 
-model_id = "ddp-iitm/biobigbird-base-uncased"
+model_id = "ddp-iitm/biobigbird-further-mimic3-pubmed-abstracts"
+revision = "2e91fe58137056de66f2fad07495fe4c3e5d88e5"
+from_flax = True
 model = BigBirdForTokenClassification.from_pretrained(
-    model_id, use_auth_token=True, num_labels=num_labels
+    model_id, use_auth_token=True, num_labels=num_labels, revision=revision, from_flax=from_flax
 )
 model.config.label2id = label2idx
 model.config.id2label = idx2label
