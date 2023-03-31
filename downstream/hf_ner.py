@@ -54,8 +54,8 @@ from transformers.utils import check_min_version, get_full_repo_name, send_examp
 from transformers.utils.versions import require_version
 
 
-# Will error if the minimal version of Transformers is not installed. Remove at your own risks.
-check_min_version("4.28.0.dev0")
+# # Will error if the minimal version of Transformers is not installed. Remove at your own risks.
+# check_min_version("4.28.0.dev0")
 
 logger = get_logger(__name__)
 require_version("datasets>=1.8.0", "To fix: pip install -r examples/pytorch/token-classification/requirements.txt")
@@ -102,7 +102,7 @@ def parse_args():
     parser.add_argument(
         "--max_length",
         type=int,
-        default=128,
+        default=512,
         help=(
             "The maximum total input sequence length after tokenization. Sequences longer than this will be truncated,"
             " sequences shorter will be padded if `--pad_to_max_length` is passed."
@@ -112,6 +112,19 @@ def parse_args():
         "--pad_to_max_length",
         action="store_true",
         help="If passed, pad all samples to `max_length`. Otherwise, dynamic padding is used.",
+    )
+    parser.add_argument(
+        "--revision",
+        type=str,
+        default=None,
+        help="Path to pretrained model or model identifier from huggingface.co/models.",
+        required=False,
+    )
+    parser.add_argument(
+        "--from_flax",
+        type=bool,
+        default=False,
+        required=False,
     )
     parser.add_argument(
         "--model_name_or_path",
@@ -410,6 +423,8 @@ def main():
             from_tf=bool(".ckpt" in args.model_name_or_path),
             config=config,
             ignore_mismatched_sizes=args.ignore_mismatched_sizes,
+            revision=args.revision,
+            from_flax=args.from_flax,
         )
     else:
         logger.info("Training new model from scratch")
