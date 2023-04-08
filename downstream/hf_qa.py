@@ -295,7 +295,7 @@ def main():
 
     # A useful fast method:
     # https://huggingface.co/docs/datasets/package_reference/main_classes.html#datasets.Dataset.unique
-    label_list = raw_datasets["train"].unique("label")
+    label_list = raw_datasets["train"].unique("final_decision")
     label_list.sort()  # Let's sort it for determinism
     num_labels = len(label_list)
 
@@ -324,14 +324,15 @@ def main():
     model.config.label2id = label_to_id
     model.config.id2label = {id: label for label, id in config.label2id.items()}
 
+    print("*" * 32)
+    print(model.config)
+    print("*" * 32)
+
     padding = "max_length" if args.pad_to_max_length else False
 
     def preprocess_function(examples):
         questions = examples["question"]
-        contexts = [
-            f"{tokenizer.sep_token}".join(context)
-            for context in examples["context"]["contexts"]
-        ]
+        contexts = f"{tokenizer.sep_token}".join(examples["context"]["contexts"])
         result = tokenizer(
             questions,
             contexts,
@@ -340,20 +341,27 @@ def main():
             truncation=True,
         )
 
-        result["label"] = [label_to_id[l] for l in examples["final_decision"]]
+        result["label"] = label_to_id[examples["final_decision"]]
         return result
 
     with accelerator.main_process_first():
         processed_datasets = raw_datasets.map(
             preprocess_function,
-            batched=True,
+            batched=False,
             remove_columns=raw_datasets["train"].column_names,
             desc="Running tokenizer on dataset",
         )
 
-    train_dataset, eval_dataset = processed_datasets.train_test_split(
-        test_size=550, seed=args.seed, shuffle=True
-    )
+    processed_datasets = processed_datasets["train"].shuffle(seed=args.seed)
+    train_indices = set(list(range(450)))
+    val_indices = set(list(range(len(processed_datasets)))) - train_indices
+    train_dataset = processed_datasets.select(list(train_indices))
+    eval_dataset = processed_datasets.select(list(val_indices))
+
+    print("*" * 32)
+    print(train_dataset, type(train_dataset))
+    print(eval_dataset)
+    print("*" * 32)
 
     # DataLoaders creation:
     if args.pad_to_max_length:
