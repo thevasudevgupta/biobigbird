@@ -339,7 +339,9 @@ def main():
             contexts = f"{tokenizer.sep_token}".join(examples["context"]["contexts"])
         else:
             questions = examples["body"]
-            contexts = [doc["text"] for doc in examples["snippets"]]
+            contexts = f"{tokenizer.sep_token}".join(
+                [doc["text"] for doc in examples["snippets"]]
+            )
         result = tokenizer(
             questions,
             contexts,
