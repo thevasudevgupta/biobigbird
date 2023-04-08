@@ -34,11 +34,8 @@ from torch.utils.data import DataLoader
 from tqdm.auto import tqdm
 from transformers import (AutoConfig, AutoModelForSequenceClassification,
                           AutoTokenizer, DataCollatorWithPadding,
-                          PretrainedConfig, SchedulerType,
-                          default_data_collator, get_scheduler)
-from transformers.utils import (check_min_version, get_full_repo_name,
-                                send_example_telemetry)
-from transformers.utils.versions import require_version
+                          SchedulerType, default_data_collator, get_scheduler)
+from transformers.utils import get_full_repo_name, send_example_telemetry
 
 logger = get_logger(__name__)
 
@@ -46,6 +43,9 @@ logger = get_logger(__name__)
 def parse_args():
     parser = argparse.ArgumentParser(
         description="Finetune a transformers model on a text classification task"
+    )
+    parser.add_argument(
+        "--task_name", type=str, default=None, choices=["PubMedQA", "BioASQ"]
     )
     parser.add_argument(
         "--train_file",
@@ -193,6 +193,7 @@ def parse_args():
     parser.add_argument(
         "--dataset_config",
         type=str,
+        default=None,
     )
     parser.add_argument(
         "--with_tracking",
@@ -295,7 +296,9 @@ def main():
 
     # A useful fast method:
     # https://huggingface.co/docs/datasets/package_reference/main_classes.html#datasets.Dataset.unique
-    label_list = raw_datasets["train"].unique("final_decision")
+    label_column = "final_decision" if args.task_name == "PubMedQA" else "exact_answer"
+
+    label_list = raw_datasets["train"].unique(label_column)
     label_list.sort()  # Let's sort it for determinism
     num_labels = len(label_list)
 
@@ -331,8 +334,12 @@ def main():
     padding = "max_length" if args.pad_to_max_length else False
 
     def preprocess_function(examples):
-        questions = examples["question"]
-        contexts = f"{tokenizer.sep_token}".join(examples["context"]["contexts"])
+        if args.task_name == "PubMedQA":
+            questions = examples["question"]
+            contexts = f"{tokenizer.sep_token}".join(examples["context"]["contexts"])
+        else:
+            questions = examples["body"]
+            contexts = [doc["text"] for doc in examples["snippets"]]
         result = tokenizer(
             questions,
             contexts,
@@ -341,7 +348,7 @@ def main():
             truncation=True,
         )
 
-        result["label"] = label_to_id[examples["final_decision"]]
+        result["label"] = label_to_id[examples[label_column]]
         return result
 
     with accelerator.main_process_first():
@@ -353,7 +360,8 @@ def main():
         )
 
     processed_datasets = processed_datasets["train"].shuffle(seed=args.seed)
-    train_indices = set(list(range(450)))
+    num_train_samples = 450 if args.task_name == "PubMedQA" else 670
+    train_indices = set(list(range(num_train_samples)))
     val_indices = set(list(range(len(processed_datasets)))) - train_indices
     train_dataset = processed_datasets.select(list(train_indices))
     eval_dataset = processed_datasets.select(list(val_indices))
