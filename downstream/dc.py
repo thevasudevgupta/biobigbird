@@ -248,6 +248,7 @@ def main():
     raw_datasets = load_dataset("qanastek/HoC")
     print(raw_datasets)
     raw_datasets = raw_datasets.filter(lambda x: len(x["label"]) > 0)
+    raw_datasets = raw_datasets.filter(lambda x: x["label"] != [7])
     print(raw_datasets)
     label_list = raw_datasets["train"].features["label"][0].names
 
@@ -293,6 +294,8 @@ def main():
 
     train_dataset = raw_datasets["train"]
     eval_dataset = raw_datasets["validation"]
+
+    # train_dataset = train_dataset.select(range(32))
 
     # Log a few random samples from the training set:
     for index in random.sample(range(len(train_dataset)), 3):
@@ -444,11 +447,23 @@ def main():
                 else:
                     samples_seen += references.shape[0]
             
+            # print(predictions)
+            # print(references)
+
             predictions = predictions.cpu().tolist()
             references = references.cpu().tolist()
 
-            predictions = [p for preds in predictions for p in preds]
-            references = [r for refs in references for r in refs]
+            # predictions = [[i for i, p in enumerate(preds) if p == 1] for preds in predictions]
+            # references = [[i for i, r in enumerate(refs) if r == 1] for refs in references]
+
+            # # 7 belongs to None
+            # predictions = [preds if len(preds) > 0 else [7] for preds in predictions]
+
+            # print(references)
+            # print(predictions)
+
+            predictions = [p for refs, preds in zip(references, predictions) for r, p in zip(refs, preds) if r==1]
+            references = [r for refs in references for r in refs if r==1]
 
             # print(predictions)
             # print(references)
