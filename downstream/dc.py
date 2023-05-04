@@ -246,12 +246,13 @@ def main():
     # In distributed training, the load_dataset function guarantee that only one local process can concurrently
     # download the dataset.
     raw_datasets = load_dataset("qanastek/HoC")
+    label_list = raw_datasets["train"].features["label"][0].names
 
     # Load pretrained model and tokenizer
     #
     # In distributed training, the .from_pretrained methods guarantee that only one local process can concurrently
     # download model & vocab.
-    config = AutoConfig.from_pretrained(args.model_name_or_path, problem_type="multi_label_classification")
+    config = AutoConfig.from_pretrained(args.model_name_or_path, problem_type="multi_label_classification", num_labels=len(label_list))
     tokenizer = AutoTokenizer.from_pretrained(args.model_name_or_path)
     model = AutoModelForSequenceClassification.from_pretrained(
         args.model_name_or_path,
@@ -259,13 +260,12 @@ def main():
         revision=args.revision,
         config=config,
     )
-    print(model.config)
-    print(model)
-
-    label_list = raw_datasets["train"].features["label"][0].names
     model.config.label2id = {l: i for i, l in enumerate(label_list)}
     model.config.id2label = {id: label for label, id in model.config.label2id.items()}
 
+    print(model.config)
+    print(model)
+    
     def data_collator(examples):
         # Tokenize the texts
 
@@ -274,13 +274,14 @@ def main():
 
         result = tokenizer(texts, padding=True, max_length=args.max_length, truncation=True, return_tensors="pt")
 
-        ok = [o + (10 - len(o)) * o[:1] for o in ok]
+        ok = torch.tensor([o + (len(label_list) - len(o)) * o[:1] for o in ok])
 
         labels = torch.zeros((result["input_ids"].shape[0], len(label_list)))
-        labels = labels.scatter_(2, ok, 1)                
+        # print(labels.shape, ok.shape)
+        labels = labels.scatter_(1, ok, 1)                
         result["labels"] = labels
         
-        print(result)
+        # print(result)
         return result
 
     train_dataset = raw_datasets["train"]
