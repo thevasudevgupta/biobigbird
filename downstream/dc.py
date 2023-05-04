@@ -460,10 +460,11 @@ def main():
         eval_metric = metric.compute(average="micro")
         logger.info(f"epoch {epoch}: {eval_metric}")
 
+        print(eval_metric)
         if args.with_tracking:
             accelerator.log(
                 {
-                    "accuracy" if args.task_name is not None else "glue": eval_metric,
+                    "eval_metric": eval_metric,
                     "train_loss": total_loss.item() / len(train_dataloader),
                     "epoch": epoch,
                     "step": completed_steps,
