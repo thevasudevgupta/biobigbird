@@ -246,6 +246,9 @@ def main():
     # In distributed training, the load_dataset function guarantee that only one local process can concurrently
     # download the dataset.
     raw_datasets = load_dataset("qanastek/HoC")
+    print(raw_datasets)
+    raw_datasets = raw_datasets.filter(lambda x: len(x["label"]) > 0)
+    print(raw_datasets)
     label_list = raw_datasets["train"].features["label"][0].names
 
     # Load pretrained model and tokenizer
@@ -274,7 +277,11 @@ def main():
 
         result = tokenizer(texts, padding=True, max_length=args.max_length, truncation=True, return_tensors="pt")
 
-        ok = torch.tensor([o + (len(label_list) - len(o)) * o[:1] for o in ok])
+        try:
+          ok = torch.tensor([o + (len(label_list) - len(o)) * o[:1] for o in ok])
+        except:
+          print(ok)
+          exit()
 
         labels = torch.zeros((result["input_ids"].shape[0], len(label_list)))
         # print(labels.shape, ok.shape)
@@ -427,7 +434,7 @@ def main():
         for step, batch in enumerate(eval_dataloader):
             with torch.no_grad():
                 outputs = model(**batch)
-            predictions = outputs.logits.argmax(dim=-1)
+            predictions = (outputs.logits >= 0.5).to(torch.long)
             predictions, references = accelerator.gather((predictions, batch["labels"]))
             # If we are in a multiprocess environment, the last batch has duplicates
             if accelerator.num_processes > 1:
@@ -436,9 +443,15 @@ def main():
                     references = references[: len(eval_dataloader.dataset) - samples_seen]
                 else:
                     samples_seen += references.shape[0]
-                    
-            print(predictions)
-            print(references)
+            
+            predictions = predictions.cpu().tolist()
+            references = references.cpu().tolist()
+
+            predictions = [p for preds in predictions for p in preds]
+            references = [r for refs in references for r in refs]
+
+            # print(predictions)
+            # print(references)
             metric.add_batch(
                 predictions=predictions,
                 references=references,
