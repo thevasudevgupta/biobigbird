@@ -288,7 +288,8 @@ def main():
     print(raw_datasets)
     raw_datasets = raw_datasets.filter(lambda x: len(x["target"]) > 0)
     print(raw_datasets)
-    label_list = raw_datasets["train"].features["target"][0].names
+    label_list = list(raw_datasets["train"].unique("target"))
+    print(label_list)
 
     # Load pretrained model and tokenizer
     #
@@ -296,7 +297,6 @@ def main():
     # download model & vocab.
     config = AutoConfig.from_pretrained(
         args.model_name_or_path,
-        problem_type="multi_label_classification",
         num_labels=len(label_list),
     )
     tokenizer = AutoTokenizer.from_pretrained(args.model_name_or_path)
@@ -316,7 +316,7 @@ def main():
         # Tokenize the texts
 
         texts = [ex["sample"] for ex in examples]
-        ok = [ex["target"] for ex in examples]
+        labels = [model.config.label2id[ex["target"]] for ex in examples]
 
         result = tokenizer(
             texts,
@@ -326,16 +326,13 @@ def main():
             return_tensors="pt",
         )
 
-        try:
-            ok = torch.tensor([o + (len(label_list) - len(o)) * o[:1] for o in ok])
-        except:
-            print(ok)
-            exit()
+        # print(result)
+        # print(labels)
 
-        labels = torch.zeros((result["input_ids"].shape[0], len(label_list)))
+        # labels = torch.zeros((result["input_ids"].shape[0], len(label_list)))
         # print(labels.shape, ok.shape)
-        labels = labels.scatter_(1, ok, 1)
-        result["labels"] = labels
+        # labels = labels.scatter_(1, ok, 1)
+        result["labels"] = torch.tensor(labels, dtype=torch.long)
 
         # print(result)
         return result
@@ -528,7 +525,6 @@ def main():
             with torch.no_grad():
                 outputs = model(**batch)
             predictions = outputs.logits.argmax(-1)
-            print(predictions)
             predictions, references = accelerator.gather((predictions, batch["labels"]))
             # If we are in a multiprocess environment, the last batch has duplicates
             if accelerator.num_processes > 1:
@@ -542,8 +538,8 @@ def main():
                 else:
                     samples_seen += references.shape[0]
 
-            print(predictions)
-            print(references)
+            # print("predictions", predictions)
+            # print("references", references)
 
             predictions = predictions.cpu().tolist()
             references = references.cpu().tolist()
