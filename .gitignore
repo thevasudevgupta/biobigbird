@@ -8,6 +8,10 @@ data/
 tmp/
 *.txt
 *.csv
+*.json
+*.zip
+*.tsv
+*.pdf
 biobigbird-finetuned-ner/
 
 wandb/
