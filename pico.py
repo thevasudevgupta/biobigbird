@@ -18,18 +18,6 @@ Fine-tuning a 🤗 Transformers model on token classification tasks (NER, POS, C
 without using a Trainer.
 """
 
-# python3 pico.py \
-# --output_dir ok \
-# --model_name_or_path ddp-iitm/biobigbird-further-pubmed-abstracts \
-# --revision ebc8cadbe16ce14a358f987a41725fe8387c9487 \
-# --from_flax True \
-# --per_device_train_batch_size 16 \
-# --per_device_eval_batch_size 16 \
-# --learning_rate 2e-5 \
-# --num_train_epochs 10 \
-# --max_length 512 \
-# --with_tracking \
-# --report_to "wandb"
 
 import argparse
 import json
@@ -516,6 +504,8 @@ def main():
             tokenizer, pad_to_multiple_of=(8 if accelerator.use_fp16 else None)
         )
 
+    # train_dataset = train_dataset.select(range(32))
+
     train_dataloader = DataLoader(
         train_dataset,
         shuffle=True,
@@ -607,7 +597,7 @@ def main():
         accelerator.init_trackers("ner_no_trainer", experiment_config)
 
     # Metrics
-    metric = evaluate.load("seqeval")
+    metric = evaluate.load("f1")
 
     def get_labels(predictions, references):
         # Transform predictions and references tensos to numpy arrays
@@ -620,17 +610,21 @@ def main():
 
         # Remove ignored index (special tokens)
         true_predictions = [
-            [label_list[p] for (p, l) in zip(pred, gold_label) if l != -100]
+            [p for (p, l) in zip(pred, gold_label) if l != -100]
             for pred, gold_label in zip(y_pred, y_true)
         ]
         true_labels = [
-            [label_list[l] for (p, l) in zip(pred, gold_label) if l != -100]
+            [l for (p, l) in zip(pred, gold_label) if l != -100]
             for pred, gold_label in zip(y_pred, y_true)
         ]
+
+        true_predictions = [p for preds in true_predictions for p in preds]
+        true_labels = [p for lables in true_labels for p in lables]
+
         return true_predictions, true_labels
 
     def compute_metrics():
-        results = metric.compute()
+        results = metric.compute(average="macro")
         if args.return_entity_level_metrics:
             # Unpack nested dictionaries
             final_results = {}
@@ -642,12 +636,7 @@ def main():
                     final_results[key] = value
             return final_results
         else:
-            return {
-                "precision": results["overall_precision"],
-                "recall": results["overall_recall"],
-                "f1": results["overall_f1"],
-                "accuracy": results["overall_accuracy"],
-            }
+            return results
 
     # Train!
     total_batch_size = (
@@ -763,6 +752,10 @@ def main():
                 else:
                     samples_seen += labels_gathered.shape[0]
             preds, refs = get_labels(predictions_gathered, labels_gathered)
+
+            # print("preds", preds)
+            # print("refs", refs)
+
             metric.add_batch(
                 predictions=preds,
                 references=refs,
