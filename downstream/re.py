@@ -137,6 +137,10 @@ def parse_args():
         help="Number of updates steps to accumulate before performing a backward/update pass.",
     )
     parser.add_argument(
+        "--dataset_name",
+        type=str,
+    )
+    parser.add_argument(
         "--lr_scheduler_type",
         type=SchedulerType,
         default="linear",
@@ -284,7 +288,7 @@ def main():
 
     # In distributed training, the load_dataset function guarantee that only one local process can concurrently
     # download the dataset.
-    raw_datasets = load_dataset("ddp-iitm/chemprot")
+    raw_datasets = load_dataset(args.dataset_name)
     print(raw_datasets)
     raw_datasets = raw_datasets.filter(lambda x: len(x["target"]) > 0)
     print(raw_datasets)

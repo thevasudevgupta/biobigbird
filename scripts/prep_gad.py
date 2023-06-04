@@ -7,10 +7,15 @@ df = df[["GAD_ASSOC", "NER_GENE_ENTITY", "NER_DISEASE_ENTITY", "GAD_CONCLUSION"]
 print(df.shape)
 print(df.columns)
 
+
 def build_and_save_data():
-    df["sample"] = df.apply(lambda x: f"find relation between entities - {x['NER_GENE_ENTITY']} and {x['NER_DISEASE_ENTITY']} in {x['GAD_CONCLUSION']}", axis=1)
+    df["sample"] = df.apply(
+        lambda x: f"find relation between entities - {x['NER_GENE_ENTITY']} and {x['NER_DISEASE_ENTITY']} in {x['GAD_CONCLUSION']}",
+        axis=1,
+    )
     df["target"] = df["GAD_ASSOC"]
     df.to_csv("gad.csv", index=False)
+
 
 build_and_save_data()
 
