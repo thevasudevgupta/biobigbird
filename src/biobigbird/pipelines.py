@@ -73,7 +73,7 @@ def pipeline(
 
 
 if __name__ == "__main__":
-    model_id = "vasudevgupta/microsoft-BiomedNLP-PubMedBERT-base-uncased-abstract"
+    model_id = "bisectgroup/biobigbird-base-stage1"
     pipe = pipeline("fill-mask", model=model_id)
 
     # string = '[MASK] is the tyrosine kinase inhibitor.'

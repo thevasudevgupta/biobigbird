@@ -7,8 +7,7 @@ import flax
 import jax
 import jax.numpy as jnp
 import numpy as np
-from cool import build_datasets
-from datasets import load_dataset, load_from_disk
+from datasets import Dataset, interleave_datasets, load_dataset, load_from_disk
 from flax.training import train_state
 from transformers import AutoTokenizer, BigBirdConfig, FlaxBigBirdForMaskedLM
 
@@ -19,6 +18,16 @@ from biobigbird.utils import (create_tx, hf_save_fn,
                               linear_scheduler_with_warmup, read_yaml)
 
 seed = 42
+
+
+def build_datasets(dataset_ids):
+    datasets = []
+    for dataset_id in dataset_ids:
+        ds = load_dataset(
+            dataset_id, streaming=True, split="train", use_auth_token=True
+        )
+        datasets.append(ds)
+    return interleave_datasets(datasets, stopping_strategy="all_exhausted")
 
 
 def cross_entropy(logits, labels, ignore_index=IGNORE_INDEX):
@@ -217,6 +226,7 @@ should_load_from_disk = data_config["should_load_from_disk"]
 dataset_id = data_config["dataset_id"]
 num_examples = data_config["num_examples"]
 
+assert streaming
 # if streaming:
 #     assert not should_load_from_disk
 #     dataset = load_dataset(dataset_id, streaming=True, use_auth_token=True)
@@ -225,11 +235,7 @@ num_examples = data_config["num_examples"]
 # else:
 #     dataset = load_dataset(dataset_id, use_auth_token=True)
 
-
-assert streaming
-from datasets import Dataset
-
-dataset: Dataset = build_datasets()
+dataset: Dataset = build_datasets(configs_dict["data"]["dataset_id"])
 dataset = dataset.shuffle(seed=42)
 # dataset = dataset.train_test_split(test_size=40000, seed=42)
 # train_data, val_data = dataset["train"], dataset["validation"]

@@ -1,0 +1,49 @@
+script:
+  push_to_hub: false
+  repo_id: null
+
+data:
+  streaming: true
+  should_load_from_disk: false
+  dataset_id:
+    - bisectgroup/pubmed_abstracts
+
+  # ignore if streaming=False
+  num_examples: 42773282
+  # + 2083179 for mimic3
+  # + 42773282 for pubmed abstracts
+  # - 40000 for validation
+
+model:
+  model_id: bisectgroup/biobigbird-base-stage2
+  tokenizer_id: bisectgroup/biobigbird-base-stage2
+  revision: null
+  attention_type: original_full
+  block_size: null
+  num_random_blocks: null
+
+data_collator:
+  max_length: 512
+  mlm_probability: 0.2
+
+  column_name: text
+
+trainer:
+  max_epochs: 10
+  batch_size_per_device: 32
+  wandb_project_name: biobigbird
+  epochs_save_dir: biobigbird-base-stage3
+  num_save_steps: 50000
+  num_eval_steps: 50000
+  logging_steps: 128
+  max_steps_per_epoch: -1
+
+  dataloader_num_workers: 2
+  dataloader_pin_memory: false
+  dataloader_prefetch_factor: 8
+
+optax:
+  lr: 2.e-5
+  init_lr: 1.e-7
+  warmup_steps: 20000
+  weight_decay: 1.e-2

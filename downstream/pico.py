@@ -597,7 +597,7 @@ def main():
         accelerator.init_trackers("ner_no_trainer", experiment_config)
 
     # Metrics
-    metric = evaluate.load("f1")
+    metric = evaluate.load("seqeval")
 
     def get_labels(predictions, references):
         # Transform predictions and references tensos to numpy arrays
@@ -610,21 +610,21 @@ def main():
 
         # Remove ignored index (special tokens)
         true_predictions = [
-            [p for (p, l) in zip(pred, gold_label) if l != -100]
+            [label_list[p] for (p, l) in zip(pred, gold_label) if l != -100]
             for pred, gold_label in zip(y_pred, y_true)
         ]
         true_labels = [
-            [l for (p, l) in zip(pred, gold_label) if l != -100]
+            [label_list[l] for (p, l) in zip(pred, gold_label) if l != -100]
             for pred, gold_label in zip(y_pred, y_true)
         ]
 
-        true_predictions = [p for preds in true_predictions for p in preds]
-        true_labels = [p for lables in true_labels for p in lables]
+        # true_predictions = [p for preds in true_predictions for p in preds]
+        # true_labels = [p for lables in true_labels for p in lables]
 
         return true_predictions, true_labels
 
     def compute_metrics():
-        results = metric.compute(average="macro")
+        results = metric.compute()
         if args.return_entity_level_metrics:
             # Unpack nested dictionaries
             final_results = {}

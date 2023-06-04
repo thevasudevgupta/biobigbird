@@ -5,7 +5,7 @@ from typing import List
 
 import jsonlines
 import PyPDF2
-from datasets import load_dataset, load_from_disk
+from datasets import load_dataset
 from tqdm.auto import tqdm
 
 target_filename = "books.jsonl"

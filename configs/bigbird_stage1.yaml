@@ -1,0 +1,46 @@
+script:
+  push_to_hub: false
+  repo_id: null
+
+data:
+  streaming: true
+  should_load_from_disk: false
+  dataset_id:
+    - bisectgroup/pubmed_raw_text_v3
+
+  # ignore if streaming=False
+  num_examples: 2300000
+
+model:
+  model_id: null
+  tokenizer_id: bisectgroup/biobigbird-base-stage1
+  revision: null
+  attention_type: block_sparse
+  block_size: 128
+  num_random_blocks: 3
+
+data_collator:
+  max_length: 4096
+  mlm_probability: 0.2
+
+  column_name: text
+
+trainer:
+  max_epochs: 10
+  batch_size_per_device: 8
+  wandb_project_name: biobigbird
+  epochs_save_dir: biobigbird-base-stage1
+  num_save_steps: 20000
+  num_eval_steps: 20000
+  logging_steps: 128
+  max_steps_per_epoch: -1
+
+  dataloader_num_workers: 2
+  dataloader_pin_memory: false
+  dataloader_prefetch_factor: 8
+
+optax:
+  lr: 2.e-5
+  init_lr: 1.e-7
+  warmup_steps: 20000
+  weight_decay: 1.e-2

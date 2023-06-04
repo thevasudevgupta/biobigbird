@@ -13,7 +13,6 @@ def extract_abstracts(sample):
 def build_dataset():
     ds = load_dataset("pubmed")
     print(ds)
-    exit()
     remove_columns = ["MedlineCitation", "PubmedData"]
     ds = ds.map(lambda x: extract_abstracts(x), remove_columns=remove_columns)
     print(ds)
