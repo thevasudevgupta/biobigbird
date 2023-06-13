@@ -1,34 +1,66 @@
-# import pandas as pd
+from pathlib import Path
 
-# df1 = pd.read_csv("/Users/vasudevgupta/downloads/DDICorpus/GAD_Y_N.csv", sep="\t")
-# df2 = pd.read_csv("/Users/vasudevgupta/downloads/DDICorpus/GAD_F.csv", sep="\t")
-# df = pd.concat([df1, df2])
-# df = df[["GAD_ASSOC", "NER_GENE_ENTITY", "NER_DISEASE_ENTITY", "GAD_CONCLUSION"]]
-# print(df.shape)
-# print(df.columns)
+import pandas as pd
+from bs4 import BeautifulSoup
+from datasets import DatasetDict, load_dataset
+from tqdm.auto import tqdm
 
-# def build_and_save_data():
-#     df["sample"] = df.apply(lambda x: f"find relation between entities - {x['NER_GENE_ENTITY']} and {x['NER_DISEASE_ENTITY']} in {x['GAD_CONCLUSION']}", axis=1)
-#     df["target"] = df["GAD_ASSOC"]
-#     df.to_csv("gad.csv", index=False)
 
-# build_and_save_data()
+def extract_data(filename):
+    with open(filename) as f:
+        soup = BeautifulSoup(f, "html.parser")
+    data = []
+    document = soup.find_all("document")
+    for doc in document:
+        sentence = doc.find_all("sentence")
+        for sent in sentence:
+            text = sent["text"]
+            pairs = sent.find_all("pair")
+            for pair in pairs:
+                if pair["ddi"] == "true" and "type" in pair.attrs:
+                    e1 = sent.find_all("entity", id=pair["e1"])
+                    e2 = sent.find_all("entity", id=pair["e2"])
+                    assert len(e1) == 1
+                    assert len(e2) == 1
+                    data.append((text, e1[0]["text"], e2[0]["text"], pair["type"]))
+    return data
 
-# from datasets import DatasetDict, load_dataset
 
-# ds = load_dataset("csv", data_files="gad.csv", split="train")
-# ds = ds.train_test_split(test_size=0.1, seed=1337)
+def build_data(data_dir):
+    data = []
+    files = Path(data_dir).glob("**/*.xml")
+    for filename in tqdm(files):
+        data.extend(extract_data(filename))
+    df = pd.DataFrame(data, columns=["text", "e1", "e2", "relation"])
+    return df
 
-# ds = DatasetDict(
-#     {
-#         "train": ds["train"],
-#         "valid": ds["test"],
-#     }
-# )
 
-# print(ds)
+def create_important_cols(df):
+    df["sample"] = df.apply(
+        lambda x: f"find relation between entities - {x['e1']} and {x['e2']} in {x['text']}",
+        axis=1,
+    )
+    df["target"] = df["relation"]
+    return df
 
-# push_to_hub = False
 
-# if push_to_hub:
-#     ds.push_to_hub("ddp-iitm/gad", private=True)
+data_dir = "/Users/vasudevgupta/downloads/DDICorpus/Train"
+df = create_important_cols(build_data(data_dir))
+df.to_csv("ddi_train.csv", index=False)
+print(df)
+
+data_dir = "/Users/vasudevgupta/downloads/DDICorpus/Test"
+df = create_important_cols(build_data(data_dir))
+df.to_csv("ddi_test.csv", index=False)
+print(df)
+
+ds = DatasetDict(
+    {
+        "train": load_dataset("csv", data_files="ddi_train.csv", split="train"),
+        "valid": load_dataset("csv", data_files="ddi_test.csv", split="train"),
+    }
+)
+print(ds)
+push_to_hub = False
+if push_to_hub:
+    ds.push_to_hub("bisectgroup/ddi", private=True)
