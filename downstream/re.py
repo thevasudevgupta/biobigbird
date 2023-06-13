@@ -231,7 +231,7 @@ def main():
     # If we're using tracking, we also need to initialize it here and it will by default pick up all supported trackers
     # in the environment
     accelerator = (
-        Accelerator(log_with=args.report_to, logging_dir=args.output_dir)
+        Accelerator(log_with=args.report_to)
         if args.with_tracking
         else Accelerator()
     )
